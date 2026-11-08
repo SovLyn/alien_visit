@@ -83,15 +83,16 @@ impl App {
             if let UiEvent::SetQuality(q) = ev {
                 self.settings.quality = q;
             }
-            if let UiEvent::ToggleUi = ev {
-                self.settings.show_ui = !self.settings.show_ui;
-            }
             self.scene.apply_event(ev, &mut self.settings);
         }
         if self.settings.quality != self.last_quality {
             self.last_quality = self.settings.quality;
-            self.renderer
-                .resize(self.viewport.0, self.viewport.1, self.dpr, self.settings.quality);
+            self.renderer.resize(
+                self.viewport.0,
+                self.viewport.1,
+                self.dpr,
+                self.settings.quality,
+            );
         }
 
         self.scene.update(dt, &mut self.settings);
@@ -144,8 +145,8 @@ fn boot() -> Result<(), String> {
     }
 
     let renderer = Renderer::new(&canvas, settings.quality)?;
-    let mut scene = Scene::new(&canvas, &settings, (css_w, css_h))
-        .map_err(|e| format!("scene init: {e:?}"))?;
+    let mut scene =
+        Scene::new(&canvas, &settings, (css_w, css_h)).map_err(|e| format!("scene init: {e:?}"))?;
     let ui = Ui::new(&settings).map_err(|e| format!("UI init: {e:?}"))?;
 
     params.apply_camera(&mut scene, &mut settings);
@@ -278,7 +279,8 @@ impl UrlParams {
     }
 
     fn bool_of(&self, key: &str) -> Option<bool> {
-        self.get(key).map(|v| !matches!(v, "0" | "false" | "off" | "no"))
+        self.get(key)
+            .map(|v| !matches!(v, "0" | "false" | "off" | "no"))
     }
 
     fn apply(&self, s: &mut Settings) {
@@ -342,7 +344,9 @@ impl UrlParams {
 
     fn apply_camera(&self, scene: &mut Scene, s: &mut Settings) {
         scene.set_view_instant(s.view);
-        scene.set_sim_time(s.sim_time, s);
+        if self.get("t").is_some() {
+            scene.set_sim_time(s.sim_time, s);
+        }
         scene.set_focus_instant(s.focus);
         if let Some(yaw) = self.f32_of("yaw") {
             let pitch = self.f32_of("pitch").unwrap_or(20.0);
@@ -376,7 +380,9 @@ macro_rules! install_fn {
 }
 
 fn install_debug_api(app: &Rc<RefCell<App>>) {
-    let Some(window) = web_sys::window() else { return };
+    let Some(window) = web_sys::window() else {
+        return;
+    };
     let api = js_sys::Object::new();
 
     let a = app.clone();
@@ -386,7 +392,7 @@ fn install_debug_api(app: &Rc<RefCell<App>>) {
         };
         let s = &app.settings;
         let json = format!(
-            "{{\"view\":\"{}\",\"focus\":\"{}\",\"time\":{:.3},\"paused\":{},\"timeScale\":{:.1},\"quality\":\"{}\",\"fps\":{:.1},\"width\":{},\"height\":{},\"gpu\":\"{}\",\"ui\":{},\"markers\":{},\"orbits\":{}}}",
+            "{{\"view\":\"{}\",\"focus\":\"{}\",\"time\":{:.3},\"paused\":{},\"timeScale\":{:.1},\"quality\":\"{}\",\"fps\":{:.1},\"width\":{},\"height\":{},\"gpu\":\"{}\",\"ui\":{},\"markers\":{},\"orbits\":{},\"exposure\":{:.3},\"haze\":{:.3},\"rings\":{:.3},\"vhalLight\":{:.3},\"fov\":{:.2}}}",
             s.view.label(),
             s.focus.label(),
             s.sim_time,
@@ -399,7 +405,12 @@ fn install_debug_api(app: &Rc<RefCell<App>>) {
             app.renderer.gpu_info.replace('"', "'"),
             s.show_ui,
             s.show_markers,
-            s.show_orbits
+            s.show_orbits,
+            s.exposure,
+            s.haze,
+            s.ring_brightness,
+            s.vhal_light,
+            s.fov_deg
         );
         JsValue::from_str(&json)
     });
@@ -407,7 +418,9 @@ fn install_debug_api(app: &Rc<RefCell<App>>) {
 
     let a = app.clone();
     let set = Closure::<dyn Fn(JsValue)>::new(move |obj: JsValue| {
-        let Ok(mut app) = a.try_borrow_mut() else { return };
+        let Ok(mut app) = a.try_borrow_mut() else {
+            return;
+        };
         debug_apply(&mut app, &obj);
     });
     install_fn!(api, "set", set);
@@ -478,7 +491,11 @@ fn install_debug_api(app: &Rc<RefCell<App>>) {
 fn debug_apply(app: &mut App, obj: &JsValue) {
     let mut s = app.settings;
     if let Some(v) = js_str(obj, "view") {
-        let view = if v.starts_with("or") { ViewMode::Orbit } else { ViewMode::Surface };
+        let view = if v.starts_with("or") {
+            ViewMode::Orbit
+        } else {
+            ViewMode::Surface
+        };
         app.scene.set_view_instant(view);
         s.view = view;
     }

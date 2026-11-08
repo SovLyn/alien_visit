@@ -79,35 +79,45 @@ Rules:
 
 The default state must already be a composed photograph, not a debug view.
 
-Camera at `lat 48.0°N` on Ossa, eye height 1.7 m, standing on a gentle rise at the edge of a shallow basin.
+Camera at `lat 60.0°N` on Ossa, eye height 1.7 m, standing on a gentle rise at the edge of a shallow basin.
+
+**Physical composition note (v1.1):** for a distant star, Vhal's illuminated fraction is
+`(1 − cos(elongation))/2`, where elongation is the Kesh–Vhal angle seen from Ossa.
+A low Kesh at +5° and a high Vhal at +42° force an elongation under ~48°, i.e. a
+narrow crescent (≤29% lit). To keep both bodies in the same frame **and** show
+enough of Vhal's cloud bands, v1.1 lowers Vhal to +30° and places Kesh 85° away
+in azimuth. This gives a half-lit giant (elongation 87.5°, lit 47.8%), a low sun,
+and long hard shadows. The v1.0 72–80% target was geometrically inconsistent and
+is retired.
 
 | Element | Target |
 |---|---|
-| Vertical FOV | 70° default (UI 55–95°) |
-| Camera pitch | +20° (horizon visible in lower fifth; ground fills ~20–25% of frame) |
-| Camera yaw | 18° east of the Vhal meridian |
-| Vhal center | elevation +42°, azimuth −18° from view center (left of center) |
+| Vertical FOV | 76° default (UI 55–95°) |
+| Camera pitch | +17.5° (horizon in lower third; ground fills ~25–30%) |
+| Camera yaw | 37° east of the Vhal meridian |
+| Vhal center | elevation +30° ± 1°, azimuth −37° from view center (left third) |
 | Vhal angular diameter | 27.7° (radius 60 000 km at 250 000 km; ±1°) |
-| Vhal illuminated fraction | 72–80% (phase angle 52–66°); terminator on the lower-left limb |
+| Vhal illuminated fraction | 44–52% (elongation 84–91°); terminator crosses near the disc centre, layered, not a hard edge |
 | Ring opening angle | 10–14° (thin, sharp); ring plane strikes a 18–28° screen angle |
-| Ring outer angular radius | ~34° (rings extend past both sides of Vhal, clipping the frame edges) |
-| Kesh center | elevation +5° ± 2°, azimuth +55° ± 8° east of the Vhal meridian (right of center) |
+| Ring outer angular radius | ~34° (rings extend past both sides of Vhal; the ring band is the sharpest line in frame) |
+| Kesh center | elevation +5° ± 2°, azimuth +85° ± 4° east of the Vhal meridian (near right edge) |
 | Kesh angular diameter | 2.1° ± 0.2° |
-| Kesh separation from Vhal | 50–62° on screen |
-| Foreground | dark eroded ridge at right edge, silhouette 1–3° above horizon, ~250–450 m away; a low ridge/spire anchor at left third, 1.2–2.0 km away |
-| Vhal top | may clip at the frame top by 0–3°; never clip the whole upper half |
+| Kesh separation from Vhal | 84–91° on screen |
+| Foreground | eroded blade left of centre (250–650 m, 8–10° silhouette) throwing a long hard shadow; a low east shelf (1–2°) under Kesh; no foreground ridge blocks the star |
+| Vhal top | not clipped; the disc can touch the left frame edge (0–2° clip) — the giant is almost too large for the lens |
 | Terrain horizon | visible as a clean, slightly hazed line; no mesh edge, no void |
 
 Composition notes:
-- Vhal is left of center and above; Kesh is low right. Their separation is the picture's diagonal.
+- Vhal occupies the upper-left third; Kesh sits low near the right edge. Their separation is the picture's diagonal, spanning almost the full 103° horizontal field.
 - The ring arc should cross in front of Vhal and continue into the sky as a hairline. It is the sharpest line in the image.
-- The foreground ridge must not block Vhal. It frames the right side and gives the low camera a sense of weight.
+- The foreground ridge must not block Vhal or Kesh. It frames the right side and gives the low camera a sense of weight.
 - Ground in shadow stays legible: cold Vhal-shine fill, never crushed black.
-- The default scene is **not** in eclipse; the star is visible.
+- The default scene is **not** in eclipse; the star is visible just above the right-hand ridge.
+- Vhal's night side is lifted by ring-shine and a thin atmospheric rim; it must not read as a black hole.
 
 Mobile (portrait, 390×844):
-- Same world state, FOV_y 74°, pitch +17°, yaw 10° east of the Vhal meridian.
-- Vhal dominates ~70% of screen width. Kesh may be off-screen: that is acceptable and must exercise the edge-arrow system.
+- Same world state, FOV_y 78°, pitch +15°, yaw 32° east of the Vhal meridian.
+- Vhal dominates ~70% of screen width. Kesh is off-screen right: that is intended and must exercise the edge-arrow system.
 - Telemetry condenses to two rows; control panel starts collapsed.
 
 ### 3.1 Surface lighting checkpoints
@@ -125,23 +135,23 @@ Mobile (portrait, 390×844):
 
 A cold, observational view of the Vhal system. Not a diagram, not a screensaver.
 
-- Focus: Vhal. Camera distance 850 000 km (±10%), elevation 28° above the ring plane, azimuth such that the terminator and ring shadows are both readable.
-- Vhal angular radius ~4.0°; ring outer radius ~9.5°; rings clearly open (not edge-on) for legibility.
-- Ossa is visible as a small desert crescent (angular radius 0.13°) on its orbit, lower-left of Vhal; Thren and Sable are small lit dots on their orbit lines.
-- Kesh is a small, intense 2° disc at upper right, 7.5 million km away.
-- Orbit lines: 1px hairlines at 22–40% opacity, accent-tinted, with labels at the body. Moons' orbits and planets' orbits are both legible; hierarchical nesting must be obvious.
+- Default focus: **Vhal, local system**. Camera distance 420 000 km, elevation 18° above the ring plane, azimuth chosen for a **half-lit giant (~50% phase)** with the terminator, cloud bands and ring shadows readable. Not a full-phase white egg.
+- Vhal angular radius ~8.1°; ring outer radius ~18.5°; rings clearly open (18° opening), gray rather than white.
+- Ossa, Thren and Sable carry quiet minor labels when they are in frame (distance from camera); the nested moon orbits read as the local system.
+- **Kesh is deliberately off-screen in the default local view**; it is represented by a left-edge chevron and distance. The SYSTEM and KESH presets bring the star and the planet orbits into frame. This trade-off is required to give Vhal enough presence at 420 000 km; it also exercises the off-screen system.
+- Orbit lines: 1px hairlines at 22–40% opacity, accent-tinted, with labels at the projected body. Minor-body labels are dimmer than Vhal/Kesh. An `ORBIT KEY` in the deck names the moons of Vhal and planets of Kesh.
 - No terrain in orbit view. No lens flare. No motion blur. Starfield static.
 - The ring plane is the stage; Vhal's shadow falls across the rings; the rings' shadow falls across the cloud tops; moon shadows may transit.
 - Scale bar (bottom center): hairline + text, e.g. `100 000 KM`, computed from camera and viewport.
-- Camera interaction: drag to orbit, wheel to zoom, no auto-drift. Focus presets **OSSA / VHAL / KESH / SYSTEM** transition over 2.2s ease-in-out.
-- Zoom range: 6 000 km (close to Ossa) to 4.0e7 km (system). Camera is clamped outside the focused body.
+- Camera interaction: drag to orbit, wheel to zoom, no auto-drift. Focus presets **OSSA (8 000 km) / VHAL (420 000 km) / KESH (12 000 000 km) / SYSTEM (18 000 000 km)** transition over 2.2s ease-in-out. Kesh and the planets are tiny at true scale, so labels + orbit lines carry the hierarchy in the system presets.
+- Zoom range: 6 000 km (close to Ossa) to 4.0e7 km. Camera is clamped outside the focused body.
 
 ### 4.1 Orbit-specific checkpoints
 
 1. Vhal's rings cast a banded shadow on the planet; the shadow edge is soft by ~0.2° but clearly banded.
 2. Vhal casts a hard shadow on the rings, with the planet's atmospheric refraction rim faintly visible.
 3. Moons cast small shadows on Vhal when aligned; moons are eclipsed by Vhal's shadow cone.
-4. The moon system around Vhal and the planets around Kesh are both visible via labels + orbit lines; the hierarchy reads without explanation.
+4. The moon system around Vhal (VHAL/local) and the planets around Kesh (SYSTEM/KESH) are legible via labels + orbit lines + key; the hierarchy reads without explanation.
 5. Orbit line occlusion: lines passing behind a body are not drawn over it.
 6. The surface detail on Ossa reads as the same desert seen from the ground, at a smaller scale.
 
@@ -163,7 +173,7 @@ Units: kilometres, seconds. World up for the surface frame is +Y; east +X; north
 | Cinder | 280 | Nadir | 6.0e4 | 0.01 | +4.0° | 3.07 h |
 
 - `GM_kesh = 0.65 GM_sun`, `GM_vhal = 0.90 GM_jup`, `GM_nadir = 0.55 GM_jup`.
-- Vhal's equatorial plane is tilted 45° from Ossa's orbital plane (a captured, high-inclination moon). Rings at 1.35–2.35 R_vhal (81 000–141 000 km), with the sharp outer edge at 2.35 R.
+- Vhal's equatorial plane is tilted 50° from Ossa's orbital plane (a captured, high-inclination moon), oriented so the rings open 10–14° from the opening viewpoint. Rings at 1.35–2.35 R_vhal (81 000–141 000 km), with the sharp outer edge at 2.35 R.
 - Ossa is tidally locked to Vhal: its spin period equals its orbital period; the Vhal meridian stays fixed. Surface rotation is handled by the tidal-lock frame, not a free spin.
 - Vhal spins slowly: period 16 h (visible cloud motion at 600× time, not distracting at 60×).
 - All other moons are tidally locked for visual stability.
@@ -207,7 +217,7 @@ All geometry shading is analytic/procedural; do not depend on external image ass
 
 - Low-frequency, eroded desert. No sharp alpine peaks, no dune-park playground.
 - Height features: broad undulations 15–60 m over 1–4 km; occasional eroded ridge/spur 40–120 m; fine regolith detail under 1 m only as shading, not geometry.
-- The opening-shot composition features: a shallow basin to the north, a dark ridge at the right/east, a low ridge anchor at the far left; deterministic.
+- The opening-shot composition features: a shallow basin to the north, a narrow eroded blade left of centre, a low east shelf under Kesh, and a far low ridge line; deterministic.
 - Color by height/slope/mineral noise within the palette; no saturated orange; strata/gravel detail in the fragment shader.
 - Mesh: camera-following radial grid (polar), rebuilt when the player moves > 32 m; near spacing ≤ 2 m, radius 30 km; desktop 384×200, medium 288×160, low 192×128. Height sampled from the same `terrain_field` used for walking.
 - Lighting: direct Kesh (with terrain shadow map, 2–3 tap PCF), sky ambient, Vhal-shine fill; fog/haze blends to the sky horizon color; no seams at the mesh edge.
@@ -230,16 +240,15 @@ All geometry shading is analytic/procedural; do not depend on external image ass
 
 ### 7.1 Layout (desktop)
 
-- Top-left at 28px: wordmark `OSSA` (18px, 0.34em), below `MOON OF VHAL` (9px, dim), a 1px hairline, then status: `SURFACE · 48.0°N 12.4°E` or `ORBIT · VHAL`.
+- Top-left at 28px: wordmark `OSSA` (18px, 0.34em), below `MOON OF VHAL` (9px, dim), a 1px hairline, then status: `SURFACE · 60.0°N · VHAL MERIDIAN` or `ORBIT · VHAL`.
 - Top-right: telemetry, right-aligned, monospaced:
-  - `VHAL PHASE 76.5%`
-  - `KESH EL +5.0°`
+  - `VHAL PHASE 47.1%`
+  - `KESH EL +4.6°`
   - `RING TILT 12.0°`
-  - `DAY 0001 · 06:42:10`
-  - `FPS 60 · HIGH`
-- Left center rail: `01 SURFACE` / `02 ORBIT`, active item marked by a 20px accent hairline; clickable.
-- Bottom-left: contextual hint line, 9px dim: surface `WASD MOVE · DRAG LOOK · SHIFT RUN`; orbit `DRAG ORBIT · SCROLL ZOOM`.
-- Bottom-right: `OPTICS` control deck, 300–320px wide, backdrop blur 10px, hairline top; collapsible by clicking the header. Controls:
+  - `DAY 0001 · 00:00:00`
+  - `238 · HIGH`
+- Left rail, below the identity: `01 SURFACE` / `02 ORBIT`, active item marked by a 20px accent hairline; clickable.
+- Bottom-left: `OPTICS` control deck, 300–320px wide, backdrop blur 10px, hairline top; collapsible by clicking the header. It sits under the giant's lower limb with a 30px gap, so the star at the right edge stays clear. Controls:
   1. **TIME** — play/pause, speed chips `1× 60× 600× 3600×`, and a thin scrub slider (0–1 of the current orbital period).
   2. **EXPOSURE** — 0.6–1.6 slider.
   3. **HAZE** — 0–1.5 slider (surface only; disabled with note in orbit).
@@ -248,7 +257,9 @@ All geometry shading is analytic/procedural; do not depend on external image ass
   6. **LENS** — FOV 55–95 slider (surface); in orbit, becomes a zoom readout/scale.
   7. **QUALITY** — LOW / MED / HIGH chips.
   8. **FOCUS** — OSSA / VHAL / KESH / SYSTEM chips (orbit only).
-  9. **OVERLAYS** — MARKERS on/off, ORBITS on/off.
+  9. **ORBIT KEY** — orbit-only key naming the moons of Vhal and planets of Kesh.
+  10. **OVERLAYS** — MARKERS on/off, ORBITS on/off.
+- Bottom-right: contextual hint line, 9px dim: surface `WASD MOVE · DRAG LOOK · SHIFT RUN`; orbit `DRAG ORBIT · SCROLL ZOOM`.
 - Bottom-center in orbit view: scale bar.
 - Keyboard: `1` surface, `2` orbit, `Space` pause, `H` hide UI, `M` markers, `O` orbits, `R` reset camera, `F` fullscreen, `Esc` release pointer lock.
 
@@ -256,13 +267,14 @@ Every control must have an immediately visible effect. No dead controls.
 
 ### 7.2 HUD markers and edge arrows
 
-Required for **VHAL** and **KESH** in both views (plus any body the player focuses in orbit view).
+Required for **VHAL** and **KESH** in both views. In orbit view, the other bodies also get quiet door-plate labels (no arrows) so the hierarchy is readable; the ORBIT KEY names them.
 
-- Visible + on-screen: a very quiet label/bracket (opacity ≤ 0.55), 9px uppercase + distance, no filled background. Example `VHAL · 250 000 KM`.
+- Visible + on-screen: a very quiet label/bracket (opacity ≤ 0.55; minor bodies ~0.62 at 9px), uppercase + distance, no filled background. Example `VHAL · 250 000 KM`.
+- Kesh's reticle is a 28px bracket around the bright disc, not a 14px crosshair hidden by it; its label sits 22px left of the disc.
 - Occluded + on-screen: brackets switch to dashed strokes and the occlusion accent `#c8a978`; add `OCCLUDED` (or `ECLIPSED` for Kesh behind Vhal) and the distance. A 1px center cross marks the projected point.
 - Off-screen: a 1px chevron at the screen edge, inset 28px, pointing along the true direction; label beside it, horizontally readable; distance included. Occluded off-screen uses dashed chevron + accent.
 - On-screen detection uses the body's projected center and a 12px margin; arrows must point correctly even when the body is behind the camera (mirror the projected direction, never show a random edge).
-- Markers must not overlap the control deck or top-left lockup; clamp label anchor inward where needed.
+- Markers must not overlap the control deck or top-left lockup; clamp label anchor inward where needed. Labels flip to the right of the reticle near the left edge, and to the left elsewhere, so they never run off screen.
 - If both Vhal and Kesh are off-screen in the same direction, their labels must offset vertically to avoid collision.
 - Markers update every frame; their CSS movement is smoothed over ~80ms, no lag beyond one frame.
 
@@ -271,6 +283,7 @@ Required for **VHAL** and **KESH** in both views (plus any body the player focus
 - 260ms fade toward 92% darkness, switch view, 420ms fade back with a 6° FOV settle in surface view. No white flash, no zoom-blur, no star-wipe.
 - During the fade, the HUD cross-fades; the wordmark stays put.
 - On first load, a 900ms fade-in from black with the wordmark; no spinner after the wasm is ready.
+- The control deck moves out of the star's way: bottom-left on desktop (identity and view rail stacked above it), bottom-right collapsed on mobile. The star Kesh remains visible at the right edge in the opening shot.
 
 ### 7.4 Loading / failure states
 
@@ -329,11 +342,14 @@ Deployment / robustness:
 
 Visual proof:
 - [ ] `docs/shots/surface.png` — opening shot, UI hidden, 1440×900.
-- [ ] `docs/shots/orbit.png` — default orbit view, UI hidden.
 - [ ] `docs/shots/surface-hud.png` — opening shot with HUD + markers.
-- [ ] `docs/shots/occluded.png` — terrain-occluded Vhal + edge arrow for Kesh.
-- [ ] `docs/shots/eclipse.png` — eclipse/time-lapse frame showing shadows.
-- [ ] `docs/shots/mobile.png` — portrait with HUD.
+- [ ] `docs/shots/orbit.png` — default Vhal local orbit view, UI hidden.
+- [ ] `docs/shots/orbit-hud.png` — orbit view with labels, ORBIT KEY and scale bar.
+- [ ] `docs/shots/system.png` — SYSTEM focus showing the planets of Kesh + labels.
+- [ ] `docs/shots/occluded.png` — terrain-occluded Kesh (OCCLUDED) + Vhal off-screen arrow.
+- [ ] `docs/shots/eclipse.png` — solar eclipse marker (ECLIPSED) on Vhal's silhouette.
+- [ ] `docs/shots/arrows.png` — both bodies behind the camera, edge chevrons.
+- [ ] `docs/shots/mobile.png` — portrait with HUD, Kesh edge arrow, collapsed deck.
 
 ---
 
@@ -342,5 +358,7 @@ Visual proof:
 | Version | Change | Reason |
 |---|---|---|
 | 1.0 | Initial spec | — |
+| 1.1 | Opening shot made physically consistent: Vhal +30°, Kesh +5° at 85° azimuth, 47.8% lit, FOV 76°, start lat 60°N; Vhal spin tilt 50°; shadow/phase wording corrected | v1.0's "low sun in frame + 76% lit giant" is impossible (illuminated fraction = (1−cos elongation)/2). Both bodies remain in frame with a half-lit giant and low sun. |
+| 1.2 | Orbit default moved to 420 000 km / 18° elevation / ~50% phase; Kesh off-screen with edge arrow; SYSTEM 18M / KESH 12M presets; quiet minor labels + ORBIT KEY; deck moved bottom-left, rail top-left, hint bottom-right; Kesh 28px bracket; label edge flips; terrain warmth/threshold tuning | Full-phase orbit at 32M was a white egg and unreadable; Kesh + control deck collided at the right edge; the local giant and the system hierarchy are now separate compositions. Surface opening unchanged. |
 
 Changes require director approval and a row here. Acceptance criteria do not drift silently.

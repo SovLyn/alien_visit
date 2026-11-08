@@ -1,0 +1,7 @@
+{
+  "name": "ossa-local-qa",
+  "private": true,
+  "type": "module",
+  "scripts": {"shot": "node shot.mjs", "smoke": "node smoke.mjs", "perf": "node perf.mjs"},
+  "dependencies": {"playwright-core": "^1.52.0"}
+}

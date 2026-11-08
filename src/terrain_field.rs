@@ -13,8 +13,6 @@
 //! Keep this function in sync with the visual spec; don't tune it by eye
 //! without updating the composition screenshots.
 
-const PI: f32 = std::f32::consts::PI;
-
 #[inline]
 fn hash2(ix: i32, iy: i32, seed: u32) -> f32 {
     let mut h = (ix as u32).wrapping_mul(0x27d4_eb2d)
@@ -100,7 +98,11 @@ fn segment_dist(px: f32, pn: f32, ax: f32, an: f32, bx: f32, bn: f32) -> f32 {
     let wx = px - ax;
     let wn = pn - an;
     let vv = vx * vx + vn * vn;
-    let t = if vv < 1e-6 { 0.0 } else { ((wx * vx + wn * vn) / vv).clamp(0.0, 1.0) };
+    let t = if vv < 1e-6 {
+        0.0
+    } else {
+        ((wx * vx + wn * vn) / vv).clamp(0.0, 1.0)
+    };
     let dx = px - (ax + vx * t);
     let dn = pn - (an + vn * t);
     (dx * dx + dn * dn).sqrt()
@@ -115,29 +117,55 @@ pub fn height_m(east: f64, north: f64) -> f32 {
     let roll_a = fbm(e / 2950.0 + 13.1, n / 2950.0 - 7.7, 4, 0x51a3);
     let roll_b = fbm(e / 980.0 - 4.6, n / 980.0 + 9.2, 3, 0x9c17);
     let soft_ridge = ridged(e / 1620.0 + 2.4, n / 1620.0 - 3.1, 3, 0x2f6d);
-    let mut h = (roll_a - 0.5) * 58.0
-        + (roll_b - 0.5) * 13.0
-        + (soft_ridge - 0.5) * 15.0;
+    let mut h = (roll_a - 0.5) * 58.0 + (roll_b - 0.5) * 13.0 + (soft_ridge - 0.5) * 15.0;
 
     // A shallow basin to the north: the view opens across it.
     h -= 24.0 * gauss(e - 120.0, n - 1150.0, 1550.0, 1350.0);
 
-    // East ridge chain (right edge of the opening frame). A narrow spine
-    // with a broken, eroded crest.
-    let d_east = segment_dist(e, n, 310.0, -300.0, 430.0, 1650.0);
-    let east_crest = (-(d_east / 92.0).powi(2)).exp();
+    // East ridge chain (mid-ground, left of the Kesh azimuth). Starts well
+    // north of the camera so the low sun has a clean horizon at the right edge.
+    let d_east = segment_dist(e, n, 380.0, 360.0, 470.0, 1650.0);
+    let east_crest = (-(d_east / 88.0).powi(2)).exp();
     let east_break = 0.62 + 0.38 * ridged(e / 130.0 + 4.0, n / 170.0, 2, 0x7a11);
-    h += 34.0 * east_crest * east_break;
+    h += 38.0 * east_crest * east_break;
 
-    // A small foreground spur at the right of the opening composition.
-    let d_spur = segment_dist(e, n, 120.0, 40.0, 200.0, 430.0);
-    h += 13.0 * (-(d_spur / 42.0).powi(2)).exp();
+    // Low eastern shelf: a dark hairline under the Kesh disc, 1–2° high,
+    // never tall enough to occlude the star at the opening.
+    let d_shelf = segment_dist(e, n, 500.0, -250.0, 580.0, 900.0);
+    h += 16.0 * (-(d_shelf / 95.0).powi(2)).exp();
 
-    // Eroded blade in the north-west: a lone visual anchor on the left third.
+    // The anchor: a narrow eroded blade left of the view centre, 280–650 m
+    // away. It rises ~34 m above the start and throws a long hard shadow
+    // across the foreground at the low sun. This is the one tall rock ridge.
+    let d_blade2 = segment_dist(e, n, 110.0, 220.0, 250.0, 650.0);
+    let t_blade = (d_blade2 / 58.0).clamp(0.0, 1.0);
+    let blade2 = (1.0 - t_blade * t_blade).powf(0.62);
+    let blade2_tex = 0.58 + 0.42 * ridged(e / 38.0 + 5.0, n / 78.0, 2, 0xa351);
+    h += 54.0 * blade2 * blade2_tex;
+    // A broken secondary tooth, so the ridge reads as erosion rather than a dome.
+    let d_tooth = segment_dist(e, n, 180.0, 350.0, 285.0, 540.0);
+    let t_tooth = (d_tooth / 34.0).clamp(0.0, 1.0);
+    h += 26.0
+        * (1.0 - t_tooth * t_tooth).powf(0.60)
+        * (0.55 + 0.45 * ridged(e / 30.0 + 9.0, n / 60.0, 2, 0x51ab));
+
+    // A small foreground swell at 80–230 m: enough to read the ground plane
+    // and catch a shadow, not a dune.
+    let d_swell = segment_dist(e, n, 45.0, 70.0, 130.0, 250.0);
+    h += 7.0 * (-(d_swell / 48.0).powi(2)).exp();
+
+    // Eroded blade in the north-west, kept as an exploration landmark.
     let d_blade = segment_dist(e, n, -610.0, 760.0, -430.0, 1110.0);
     let blade = (-(d_blade / 52.0).powi(2)).exp();
     let blade_tex = 0.55 + 0.45 * ridged(e / 48.0 + 8.0, n / 140.0, 2, 0x33c9);
     h += 54.0 * blade * blade_tex;
+
+    // A far, low ridge line at 2.5–4 km gives the horizon a mineral edge
+    // without becoming an alpine skyline.
+    let d_far = segment_dist(e, n, -1600.0, 2700.0, 1800.0, 3300.0);
+    h += 30.0
+        * (-(d_far / 420.0).powi(2)).exp()
+        * (0.72 + 0.28 * ridged(e / 380.0, n / 380.0, 2, 0x6611));
 
     // Extra erosion detail: not enough to break the low-frequency rule.
     h += (fbm(e / 172.0 + 2.0, n / 172.0 - 6.0, 2, 0x6b2f) - 0.5) * 2.8;

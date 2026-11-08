@@ -14,7 +14,8 @@ bytemuck = { version = "1", features = ["derive"] }
 web-sys = { version = "0.3", features = [
   "Window", "Document", "Element", "HtmlElement", "HtmlCanvasElement",
   "HtmlInputElement", "HtmlButtonElement", "HtmlDivElement", "HtmlSpanElement",
-  "NodeList", "DomRect", "CssStyleDeclaration", "DomTokenList",
+  "NodeList", "Node", "Text", "DomRect", "CssStyleDeclaration", "DomTokenList",
+  "DomStringMap", "HtmlBodyElement",
   "WebGl2RenderingContext", "WebGlBuffer", "WebGlShader", "WebGlProgram",
   "WebGlUniformLocation", "WebGlVertexArrayObject", "WebGlTexture",
   "WebGlFramebuffer", "WebGlRenderbuffer", "WebGlActiveInfo",

@@ -63,10 +63,8 @@ impl Renderer {
     }
 
     pub fn resize(&mut self, css_w: f64, css_h: f64, device_pixel_ratio: f64, quality: Quality) {
-        let eff = (device_pixel_ratio as f32)
-            .max(1.0)
-            .min(quality.dpr_cap())
-            * quality.render_scale();
+        let eff =
+            (device_pixel_ratio as f32).max(1.0).min(quality.dpr_cap()) * quality.render_scale();
         let w = ((css_w.max(1.0) * eff as f64).round() as i32).clamp(1, 8192);
         let h = ((css_h.max(1.0) * eff as f64).round() as i32).clamp(1, 8192);
         if w == self.width && h == self.height && quality == self.quality {
@@ -82,8 +80,7 @@ impl Renderer {
             self.gpu.gl.viewport(0, 0, w, h);
         }
         self.sky.set_quality(&self.gpu, quality);
-        self.terrain
-            .set_quality(&self.gpu, quality, w, h, eff);
+        self.terrain.set_quality(&self.gpu, quality, w, h, eff);
         self.orbit.set_quality(&self.gpu, quality);
         web_sys::console::log_1(
             &format!("[ossa] viewport {w}x{h} (css {css_w:.0}x{css_h:.0}, dpr {eff:.2})").into(),
@@ -106,7 +103,9 @@ impl Renderer {
             self.gpu.gl.disable(glow::DEPTH_TEST);
             self.gpu.gl.depth_mask(true);
             self.gpu.gl.clear_color(0.006, 0.010, 0.014, 1.0);
-            self.gpu.gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
+            self.gpu
+                .gl
+                .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
         }
 
         // Sky fills the frame first, with no depth interaction. Terrain then
@@ -114,8 +113,7 @@ impl Renderer {
         self.sky.render(&self.gpu, frame);
 
         if frame.view == crate::settings::ViewMode::Orbit {
-            self.orbit
-                .render(&self.gpu, frame, self.width, self.height);
+            self.orbit.render(&self.gpu, frame, self.width, self.height);
         }
 
         if frame.view == crate::settings::ViewMode::Surface {

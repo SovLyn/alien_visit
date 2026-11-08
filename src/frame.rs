@@ -3,7 +3,7 @@
 //! web shader never sees absolute solar-system positions in f32.
 
 use crate::settings::{Focus, Quality, ViewMode};
-use glam::{Vec3, Vec2};
+use glam::{Vec2, Vec3};
 
 pub const MAX_BODIES: usize = 8;
 
@@ -162,8 +162,16 @@ impl CameraView {
         let inset = inset_px.min(w * 0.45).min(h * 0.45);
         let half_w = w * 0.5 - inset;
         let half_h = h * 0.5 - inset;
-        let tx = if dx.abs() > 1e-6 { half_w / dx.abs() } else { f32::INFINITY };
-        let ty = if dy.abs() > 1e-6 { half_h / dy.abs() } else { f32::INFINITY };
+        let tx = if dx.abs() > 1e-6 {
+            half_w / dx.abs()
+        } else {
+            f32::INFINITY
+        };
+        let ty = if dy.abs() > 1e-6 {
+            half_h / dy.abs()
+        } else {
+            f32::INFINITY
+        };
         let t = tx.min(ty);
         let x = w * 0.5 + dx * t;
         let y = h * 0.5 + dy * t;

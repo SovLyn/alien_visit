@@ -1,24 +1,25 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#05080d" />
-  <title>OSSA — Moon of Vhal</title>
-  <link data-trunk rel="css" href="styles.css" />
-  <link data-trunk rel="rust" />
-</head>
-<body>
-  <canvas id="scene" aria-label="OSSA — a desert moon beneath the gas giant Vhal"></canvas>
-  <div id="ui-root"></div>
-  <div id="loader" class="loader">
-    <div class="loader-wordmark">OSSA</div>
-    <div class="loader-sub">MOON OF VHAL</div>
-    <div class="loader-line"><i></i></div>
-  </div>
-  <div id="fatal" class="fatal" hidden>
-    <div class="fatal-title">SIGNAL LOST</div>
-    <div id="fatal-message" class="fatal-message">WebGL2 is unavailable.</div>
-  </div>
-</body>
-</html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#05080d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2305080d'/%3E%3Ccircle cx='16' cy='17' r='7' fill='%23c9d2d0'/%3E%3Cellipse cx='16' cy='17' rx='14' ry='4' fill='none' stroke='%239fc3c4' stroke-width='1'/%3E%3C/svg%3E"><title>OSSA — Moon of Vhal</title><link data-trunk rel="css" href="styles.css"><link data-trunk rel="rust"></head><body>
+<canvas id="scene" aria-label="OSSA — a desert moon beneath Vhal"></canvas>
+<div id="veil"></div><div id="ui-root">
+<header class="identity"><div class="wordmark">OSSA</div><div class="subtitle">MOON OF VHAL</div><div class="identity-rule"></div><div id="status" class="status">SURFACE · 48.0°N 12.4°E</div></header>
+<div class="telemetry"><div><span>VHAL PHASE</span> <b id="phase">—</b></div><div><span>KESH EL</span> <b id="elevation">—</b></div><div><span>RING TILT</span> <b id="tilt">—</b></div><div id="clock">—</div><div id="perf">—</div></div>
+<nav class="view-rail" aria-label="View"><button id="view-surface"><small>01</small> SURFACE</button><button id="view-orbit"><small>02</small> ORBIT</button></nav>
+<div id="hint" class="hint">WASD MOVE · DRAG LOOK · SHIFT RUN</div><div id="scale" class="scale" hidden><div></div><span id="scale-label"></span></div>
+<div id="joystick" aria-label="Movement joystick"><i id="joystick-dot"></i></div>
+<section id="deck" class="deck" aria-label="Optics controls"><button id="deck-toggle" class="deck-header" aria-expanded="true"><span>OPTICS <em> / CONTROL DECK</em></span><span id="deck-symbol">−</span></button><div class="deck-body">
+<div class="section-label"><span>TIME</span><span id="time-value">SIMULATION</span></div><div class="time-controls"><button id="pause" aria-label="Pause simulation">Ⅱ</button><div class="chips"><button id="speed-1">1×</button><button id="speed-60">60×</button><button id="speed-600">600×</button><button id="speed-3600">3600×</button></div></div><label class="sr-only" for="scrub">Simulation time</label><input id="scrub" type="range" min="0" max="1" step="0.001" value="0">
+<div class="sliders">
+<div class="control"><label for="exposure">EXPOSURE</label><output id="exposure-value"></output><input id="exposure" type="range" min="0.6" max="1.6" step="0.01"></div>
+<div id="haze-row" class="control"><label for="haze">HAZE <span id="haze-note"></span></label><output id="haze-value"></output><input id="haze" type="range" min="0" max="1.5" step="0.01"></div>
+<div class="control"><label for="rings">RINGS</label><output id="rings-value"></output><input id="rings" type="range" min="0" max="1.5" step="0.01"></div>
+<div class="control"><label for="light">VHAL LIGHT</label><output id="light-value"></output><input id="light" type="range" min="0" max="1.5" step="0.01"></div>
+<div id="lens-row" class="control"><label for="fov">LENS / FOV</label><output id="fov-value"></output><input id="fov" type="range" min="55" max="95" step="1"></div><div id="orbit-lens" class="section-label" hidden><span>ORBIT SCALE</span><span id="orbit-scale">—</span></div></div>
+<div class="control-group"><div class="section-label">QUALITY</div><div class="chips"><button id="quality-low">LOW</button><button id="quality-med">MED</button><button id="quality-high">HIGH</button></div></div>
+<div id="focus-group" class="control-group" hidden><div class="section-label">FOCUS</div><div class="chips"><button id="focus-ossa">OSSA</button><button id="focus-vhal">VHAL</button><button id="focus-kesh">KESH</button><button id="focus-system">SYSTEM</button></div></div>
+<div class="control-group overlays"><div class="section-label">OVERLAYS</div><div class="chips"><button id="markers">MARKERS</button><button id="orbits">ORBITS</button></div></div><div id="orbit-key" class="orbit-key" hidden><div><span>MOONS OF VHAL</span><span>THREN · OSSA · SABLE</span></div><div><span>PLANETS OF KESH</span><span>SUR · VHAL · NADIR</span></div></div>
+<div class="deck-footer"><button id="reset">RESET CAMERA</button><button id="fullscreen">FULLSCREEN ↗</button></div></div></section>
+<div id="marker-vhal" class="marker" hidden><i></i><span></span></div><div id="marker-kesh" class="marker" hidden><i></i><span></span></div><div id="marker-focus" class="marker" hidden><i></i><span></span></div><div id="marker-ossa" class="marker minor" hidden><i></i><span></span></div><div id="marker-thren" class="marker minor" hidden><i></i><span></span></div><div id="marker-sable" class="marker minor" hidden><i></i><span></span></div><div id="marker-nadir" class="marker minor" hidden><i></i><span></span></div><div id="marker-cinder" class="marker minor" hidden><i></i><span></span></div><div id="marker-sur" class="marker minor" hidden><i></i><span></span></div>
+<div id="arrow-vhal" class="arrow" hidden><i></i><span></span></div><div id="arrow-kesh" class="arrow" hidden><i></i><span></span></div><div id="arrow-focus" class="arrow" hidden><i></i><span></span></div></div>
+<div id="loader" class="loader"><div class="loader-wordmark">OSSA</div><div class="loader-sub">MOON OF VHAL</div><div class="loader-line"><i></i></div></div><div id="fatal" class="fatal" hidden><div class="fatal-title">SIGNAL LOST</div><div id="fatal-message" class="fatal-message">Please reload to reconnect.</div></div></body></html>

@@ -31,11 +31,7 @@ impl Gpu {
     }
 
     pub fn max_texture_size(&self) -> i32 {
-        unsafe {
-            self.gl
-                .get_parameter_i32(glow::MAX_TEXTURE_SIZE)
-                .max(1024)
-        }
+        unsafe { self.gl.get_parameter_i32(glow::MAX_TEXTURE_SIZE).max(1024) }
     }
 }
 
@@ -172,7 +168,9 @@ unsafe fn compile_shader(
             .collect::<Vec<_>>()
             .join("\n");
         unsafe { gl.delete_shader(shader) };
-        return Err(format!("{label}: shader compile error:\n{log}\n--- source ---\n{numbered}"));
+        return Err(format!(
+            "{label}: shader compile error:\n{log}\n--- source ---\n{numbered}"
+        ));
     }
     Ok(shader)
 }
@@ -194,7 +192,11 @@ pub unsafe fn draw_fullscreen(gpu: &Gpu, vao: glow::VertexArray) {
 }
 
 pub fn create_buffer(gpu: &Gpu, _target: u32) -> Result<glow::Buffer, String> {
-    unsafe { gpu.gl.create_buffer().map_err(|e| format!("create_buffer: {e}")) }
+    unsafe {
+        gpu.gl
+            .create_buffer()
+            .map_err(|e| format!("create_buffer: {e}"))
+    }
 }
 
 pub fn upload_buffer(gpu: &Gpu, buffer: glow::Buffer, target: u32, data: &[u8], usage: u32) {

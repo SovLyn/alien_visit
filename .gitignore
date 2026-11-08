@@ -3,5 +3,9 @@
 /node_modules
 /tools/qa/node_modules
 /tools/qa/.cache
+/tools/qa/smoke-*.png
+/tools/qa/perf-results.json
 *.log
 .pi-loop.json.lock
+
+.pi-loop.json
