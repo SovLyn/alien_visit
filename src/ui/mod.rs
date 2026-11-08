@@ -248,7 +248,15 @@ impl Ui {
             let collapsed = window
                 .match_media("(max-width: 720px), (pointer: coarse)")?
                 .map(|m| m.matches())
-                .unwrap_or(false);
+                .unwrap_or(false)
+                // Short windows (720p desktop, landscape phones) cannot fit the
+                // open deck and the left rail without collision; start folded.
+                || window
+                    .inner_height()
+                    .ok()
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(900.0)
+                    < 780.0;
             class(Some(deck), "collapsed", collapsed);
             let _ = toggle.set_attribute("aria-expanded", if collapsed { "false" } else { "true" });
             text(
