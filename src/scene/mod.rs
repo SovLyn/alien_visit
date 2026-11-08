@@ -29,17 +29,22 @@ pub struct Scene {
     orbit_pitch_deg: f64,
     orbit_yaw_target: f64,
     orbit_pitch_target: f64,
+    orbit_resetting: bool,
     orbit_distance_km: f64,
     orbit_distance_target: f64,
     focus: Focus,
     focus_center: DVec3,
     focus_from: DVec3,
     focus_distance_from: f64,
+    focus_distance_to: f64,
+    focus_zoom_log: f64,
     focus_elapsed: f64,
     view: ViewMode,
     pending_view: Option<(ViewMode, f64)>,
     settle: f64,
     default_fov_pending: bool,
+    #[cfg(target_arch = "wasm32")]
+    last_camera_tick_ms: Option<f64>,
     #[cfg(target_arch = "wasm32")]
     hud_layout: RefCell<HudLayout>,
 }
@@ -136,17 +141,22 @@ impl Scene {
             orbit_pitch_deg: orbit_pitch,
             orbit_yaw_target: orbit_yaw,
             orbit_pitch_target: orbit_pitch,
+            orbit_resetting: false,
             orbit_distance_km: preset_distance(settings.focus),
             orbit_distance_target: preset_distance(settings.focus),
             focus: settings.focus,
             focus_center: center,
             focus_from: center,
             focus_distance_from: preset_distance(settings.focus),
+            focus_distance_to: preset_distance(settings.focus),
+            focus_zoom_log: 0.,
             focus_elapsed: 2.2,
             view: settings.view,
             pending_view: None,
             settle: 0.,
             default_fov_pending: !has_fov,
+            #[cfg(target_arch = "wasm32")]
+            last_camera_tick_ms: None,
             #[cfg(target_arch = "wasm32")]
             hud_layout: RefCell::new(HudLayout::default()),
         };
@@ -163,6 +173,29 @@ impl Scene {
         } else {
             0.
         };
+        // The app caps its simulation step at 100 ms. Keep the camera close
+        // to wall time on slower software renderers without advancing the
+        // simulation or allowing a large jump after a suspended tab resumes.
+        #[cfg(target_arch = "wasm32")]
+        let camera_dt = {
+            let now = web_sys::window()
+                .and_then(|w| w.performance())
+                .map(|p| p.now());
+            let elapsed = now
+                .zip(self.last_camera_tick_ms)
+                .map(|(n, last)| (n - last) / 1000.);
+            self.last_camera_tick_ms = now;
+            if dt >= 0.099 {
+                elapsed
+                    .filter(|v| v.is_finite())
+                    .unwrap_or(dt)
+                    .clamp(dt, 0.25)
+            } else {
+                dt
+            }
+        };
+        #[cfg(not(target_arch = "wasm32"))]
+        let camera_dt = dt;
         // Compatibility with the bootstrap Settings default (70) and mobile
         // shell (74). Explicit URL/UI FOV values are never overwritten.
         if self.default_fov_pending {
@@ -184,19 +217,19 @@ impl Scene {
         self.sim_time = settings.sim_time;
         self.positions = self.system.positions(self.sim_time);
         if let Some((target, elapsed)) = self.pending_view {
-            if elapsed + dt >= 0.26 || settings.reduced_motion {
+            if elapsed + camera_dt >= 0.26 || settings.reduced_motion {
                 settings.view = target;
                 self.view = target;
                 self.pending_view = None;
                 self.settle = if settings.reduced_motion { 0. } else { 0.42 };
                 self.velocity = DVec2::ZERO;
             } else {
-                self.pending_view = Some((target, elapsed + dt));
+                self.pending_view = Some((target, elapsed + camera_dt));
             }
         } else {
             self.view = settings.view;
         }
-        self.settle = (self.settle - dt).max(0.);
+        self.settle = (self.settle - camera_dt).max(0.);
         if settings.focus != self.focus {
             self.begin_focus(settings.focus, settings.reduced_motion);
         }
@@ -222,20 +255,33 @@ impl Scene {
             // Standard orbit gesture: horizontal drag turns the camera around
             // world-up, vertical drag pitches it. Damping removes the direct
             // one-pixel-per-degree jerk of the old ring-relative controller.
+            if self.orbit_resetting && (look[0] != 0. || look[1] != 0.) {
+                self.orbit_yaw_target = self.orbit_yaw_deg;
+                self.orbit_pitch_target = self.orbit_pitch_deg;
+                self.orbit_resetting = false;
+            }
             self.orbit_yaw_target += look[0] * 0.16;
+            // A legacy preset can legitimately start outside the interactive
+            // pole limit. Keep that exact view until dragged back toward the
+            // safe range; never snap a valid preset just because a frame ran.
+            let min_pitch = self.orbit_pitch_target.min(-85.);
+            let max_pitch = self.orbit_pitch_target.max(85.);
             self.orbit_pitch_target =
-                (self.orbit_pitch_target - look[1] * 0.14).clamp(-85., 85.);
+                (self.orbit_pitch_target - look[1] * 0.14).clamp(min_pitch, max_pitch);
             let damping = if settings.reduced_motion {
                 1.
             } else {
-                1. - (-dt / 0.085).exp()
+                1. - (-camera_dt / if self.orbit_resetting { 0.25 } else { 0.06 }).exp()
             };
-            self.orbit_yaw_deg +=
-                (self.orbit_yaw_target - self.orbit_yaw_deg) * damping;
-            self.orbit_pitch_deg +=
-                (self.orbit_pitch_target - self.orbit_pitch_deg) * damping;
-            if zoom != 0. {
-                self.orbit_distance_target *= zoom.clamp(-2., 2.).exp();
+            self.orbit_yaw_deg += (self.orbit_yaw_target - self.orbit_yaw_deg) * damping;
+            self.orbit_pitch_deg += (self.orbit_pitch_target - self.orbit_pitch_deg) * damping;
+            if self.orbit_resetting
+                && (self.orbit_yaw_target - self.orbit_yaw_deg).abs() < 0.01
+                && (self.orbit_pitch_target - self.orbit_pitch_deg).abs() < 0.01
+            {
+                self.orbit_yaw_deg = self.orbit_yaw_target;
+                self.orbit_pitch_deg = self.orbit_pitch_target;
+                self.orbit_resetting = false;
             }
         }
         let minimum = match self.focus {
@@ -243,25 +289,63 @@ impl Scene {
             Focus::Vhal => RADII[1] * 1.15,
             Focus::Kesh | Focus::System => RADII[0] * 1.15,
         };
-        self.orbit_distance_target = self.orbit_distance_target.clamp(minimum, 40_000_000.);
-        let target = self.positions[focus_body(self.focus).index()];
-        if self.focus_elapsed < 2.2 {
-            self.focus_elapsed = (self.focus_elapsed + dt).min(2.2);
-            let t = smoothstep(self.focus_elapsed / 2.2);
-            self.focus_center = self.focus_from.lerp(target, t);
-            self.orbit_distance_km = self.focus_distance_from
-                + (self.orbit_distance_target - self.focus_distance_from) * t;
+        if self.view == ViewMode::Orbit && zoom.is_finite() && zoom != 0. {
+            // Input is already logarithmic: accumulate every wheel/pinch
+            // event, even when several arrive between slow-rendered frames.
+            self.orbit_distance_target = (self.orbit_distance_target.ln() + zoom)
+                .clamp(minimum.ln(), 40_000_000_f64.ln())
+                .exp();
         } else {
-            self.focus_center = target;
-            let damping = if settings.reduced_motion {
-                1.
-            } else {
-                1. - (-dt / 0.12).exp()
-            };
-            self.orbit_distance_km +=
-                (self.orbit_distance_target - self.orbit_distance_km) * damping;
+            self.orbit_distance_target = self.orbit_distance_target.clamp(minimum, 40_000_000.);
         }
-        self.orbit_distance_km = self.orbit_distance_km.max(minimum);
+        let target = self.positions[focus_body(self.focus).index()];
+        let zoom_damping = if settings.reduced_motion {
+            1.
+        } else {
+            1. - (-camera_dt / 0.12).exp()
+        };
+        if self.focus_elapsed < 2.2 && !settings.reduced_motion {
+            self.focus_elapsed = (self.focus_elapsed + camera_dt).min(2.2);
+            let t = smoothstep(self.focus_elapsed / 2.2);
+            // Interpolate in log distance so the apparent zoom is controlled
+            // at both the million-km and thousand-km ends of a journey.
+            let base = (self.focus_distance_from.ln()
+                + (self.focus_distance_to.ln() - self.focus_distance_from.ln()) * t)
+                .exp();
+            // Keep the same straight path in (center, distance) space, but
+            // traverse it on the logarithmic zoom's time scale. On zoom-in,
+            // this brings the new focus toward the center before it grows.
+            let span = self.focus_distance_to - self.focus_distance_from;
+            let center_t = if span.abs() > 1e-6 {
+                ((base - self.focus_distance_from) / span).clamp(0., 1.)
+            } else {
+                t
+            };
+            self.focus_center = self.focus_from.lerp(target, center_t);
+            // User zoom is independent of the focus path and damped, so a
+            // wheel event cannot abruptly rewrite the interpolated endpoint.
+            let zoom_target = (self.orbit_distance_target / self.focus_distance_to).ln();
+            self.focus_zoom_log += (zoom_target - self.focus_zoom_log) * zoom_damping;
+            self.orbit_distance_km = (base.ln() + self.focus_zoom_log).exp();
+            if self.focus_elapsed >= 2.2 && (zoom_target - self.focus_zoom_log).abs() < 1e-12 {
+                self.orbit_distance_km = self.orbit_distance_target;
+            }
+            // A new focus may have a larger minimum than the current camera
+            // distance. Enforce it gradually rather than teleporting there.
+            self.orbit_distance_km = self
+                .orbit_distance_km
+                .max(minimum.min(self.focus_distance_from));
+        } else {
+            self.focus_elapsed = 2.2;
+            self.focus_center = target;
+            if self.orbit_distance_km != self.orbit_distance_target {
+                let log_distance = self.orbit_distance_km.ln();
+                self.orbit_distance_km = (log_distance
+                    + (self.orbit_distance_target.ln() - log_distance) * zoom_damping)
+                    .exp();
+            }
+            self.orbit_distance_km = self.orbit_distance_km.max(minimum);
+        }
     }
     fn walk(&mut self, dt: f64, keys: [bool; 5], reduced: bool) {
         let mut axis = self.joystick
@@ -356,7 +440,21 @@ impl Scene {
             UiEvent::ToggleMarkers => settings.show_markers = !settings.show_markers,
             UiEvent::ToggleOrbits => settings.show_orbits = !settings.show_orbits,
             UiEvent::ToggleUi => settings.show_ui = !settings.show_ui,
-            UiEvent::ResetCamera => self.reset_camera(),
+            UiEvent::ResetCamera => {
+                if self.view == ViewMode::Orbit && !settings.reduced_motion {
+                    self.reset_surface_camera();
+                    let (yaw, pitch) = orbit_basis_from_legacy(&self.system, 90., 18.);
+                    // Take the short way around, even after multiple turns.
+                    self.orbit_yaw_target =
+                        yaw + 360. * ((self.orbit_yaw_deg - yaw) / 360.).round();
+                    self.orbit_pitch_target = pitch;
+                    self.orbit_resetting = true;
+                    self.begin_focus(self.focus, false);
+                    self.clear_input();
+                } else {
+                    self.reset_camera();
+                }
+            }
             UiEvent::SetMoveAxis(x, y) => self.set_move_axis(x, y),
             UiEvent::Fullscreen => {}
         }
@@ -371,6 +469,8 @@ impl Scene {
         self.focus = f;
         self.focus_elapsed = 0.;
         self.orbit_distance_target = preset_distance(f);
+        self.focus_distance_to = self.orbit_distance_target;
+        self.focus_zoom_log = 0.;
     }
     pub fn set_view_instant(&mut self, v: ViewMode) {
         self.view = v;
@@ -385,6 +485,9 @@ impl Scene {
         self.focus_elapsed = 2.2;
         self.orbit_distance_km = preset_distance(f);
         self.orbit_distance_target = self.orbit_distance_km;
+        self.focus_distance_from = self.orbit_distance_km;
+        self.focus_distance_to = self.orbit_distance_km;
+        self.focus_zoom_log = 0.;
     }
     pub fn set_sim_time(&mut self, t: f64, settings: &mut Settings) {
         settings.sim_time = if t.is_finite() { t } else { 0. };
@@ -412,20 +515,25 @@ impl Scene {
     }
     pub fn set_orbit_camera(&mut self, az: f32, el: f32, distance: f64) {
         if az.is_finite() && el.is_finite() {
-            let (yaw, pitch) = orbit_basis_from_legacy(
-                &self.system,
-                az as f64,
-                el.clamp(-85., 85.) as f64,
-            );
+            let (yaw, pitch) =
+                orbit_basis_from_legacy(&self.system, az as f64, el.clamp(-85., 85.) as f64);
             self.orbit_yaw_deg = yaw;
             self.orbit_yaw_target = yaw;
             self.orbit_pitch_deg = pitch;
             self.orbit_pitch_target = pitch;
+            self.orbit_resetting = false;
         }
         if distance.is_finite() {
             let minimum = RADII[focus_body(self.focus).index()] * 1.15;
             self.orbit_distance_km = distance.clamp(minimum.max(6000.), 40_000_000.);
             self.orbit_distance_target = self.orbit_distance_km;
+            self.focus_distance_from = self.orbit_distance_km;
+            self.focus_distance_to = self.orbit_distance_km;
+            self.focus_zoom_log = 0.;
+            if self.focus_elapsed < 2.2 {
+                self.focus_from = self.focus_center;
+                self.focus_elapsed = 0.;
+            }
         }
     }
     pub fn set_move_axis(&mut self, x: f32, y: f32) {
@@ -435,7 +543,7 @@ impl Scene {
             DVec2::ZERO
         };
     }
-    pub fn reset_camera(&mut self) {
+    fn reset_surface_camera(&mut self) {
         let portrait = self.viewport.0 / self.viewport.1 < 0.85;
         self.set_surface_look(
             if portrait { 32. } else { 37. },
@@ -446,12 +554,19 @@ impl Scene {
         self.joystick = DVec2::ZERO;
         self.walk_phase = 0.;
         self.eye_height_m = terrain_field::height_m(0., 0.) + 1.7;
+    }
+    pub fn reset_camera(&mut self) {
+        self.reset_surface_camera();
         let (orbit_yaw, orbit_pitch) = orbit_basis_from_legacy(&self.system, 90., 18.);
         self.orbit_yaw_deg = orbit_yaw;
         self.orbit_yaw_target = orbit_yaw;
         self.orbit_pitch_deg = orbit_pitch;
         self.orbit_pitch_target = orbit_pitch;
+        self.orbit_resetting = false;
         self.set_focus_instant(self.focus);
+        self.clear_input();
+    }
+    fn clear_input(&mut self) {
         let mut input = self.input.borrow_mut();
         input.look = [0.; 2];
         input.zoom = 0.;
@@ -469,8 +584,7 @@ impl Scene {
             // A stable world-up orbit camera. The authored presets are
             // converted from their ring-relative values at startup/reset, so
             // the opening image is unchanged while dragging feels level.
-            let (forward, right, up) =
-                camera_basis(self.orbit_yaw_deg, self.orbit_pitch_deg);
+            let (forward, right, up) = camera_basis(self.orbit_yaw_deg, self.orbit_pitch_deg);
             let position = self.focus_center - forward.as_dvec3() * self.orbit_distance_km;
             (position, [DVec3::X, DVec3::Y, DVec3::Z], forward, right, up)
         };
@@ -958,22 +1072,248 @@ mod tests {
                 orbit_pitch_deg: orbit_pitch,
                 orbit_yaw_target: orbit_yaw,
                 orbit_pitch_target: orbit_pitch,
+                orbit_resetting: false,
                 orbit_distance_km: 420_000.,
                 orbit_distance_target: 420_000.,
                 focus: Focus::Vhal,
                 focus_center: center,
                 focus_from: center,
                 focus_distance_from: 420_000.,
+                focus_distance_to: 420_000.,
+                focus_zoom_log: 0.,
                 focus_elapsed: 2.2,
                 view: ViewMode::Surface,
                 pending_view: None,
                 settle: 0.,
                 default_fov_pending: false,
                 #[cfg(target_arch = "wasm32")]
+                last_camera_tick_ms: None,
+                #[cfg(target_arch = "wasm32")]
                 hud_layout: RefCell::new(HudLayout::default()),
             },
             settings,
         )
+    }
+    #[test]
+    fn orbit_basis_preserves_legacy_views_and_world_up() {
+        let (scene, _) = fixture();
+        for az in (-180..=180).step_by(15) {
+            for el in (-85..=85).step_by(10) {
+                let az = (az as f64).to_radians();
+                let el = (el as f64).to_radians();
+                let old_forward = -((scene.system.orbit_x * az.sin()
+                    - scene.system.orbit_z * az.cos())
+                    * el.cos()
+                    - scene.system.ring_normal * el.sin())
+                .normalize();
+                let old_right = old_forward.cross(DVec3::Y).normalize();
+                let old_up = old_right.cross(old_forward).normalize();
+                let (yaw, pitch) =
+                    orbit_basis_from_legacy(&scene.system, az.to_degrees(), el.to_degrees());
+                let (forward, right, up) = camera_basis(yaw, pitch);
+                assert!((forward.as_dvec3() - old_forward).length() < 2e-6);
+                assert!((up.as_dvec3() - old_up).length() < 2e-6);
+                assert!((forward.length() - 1.).abs() < 1e-6);
+                assert!((right.length() - 1.).abs() < 1e-6);
+                assert!((up.length() - 1.).abs() < 1e-6);
+                assert!(forward.dot(right).abs() < 1e-6);
+                assert!(forward.dot(up).abs() < 1e-6);
+                assert!(right.dot(up).abs() < 1e-6);
+            }
+        }
+    }
+    #[test]
+    fn orbit_legacy_near_pole_does_not_move_without_input() {
+        let (mut scene, mut settings) = fixture();
+        settings.view = ViewMode::Orbit;
+        scene.set_view_instant(ViewMode::Orbit);
+        let (az, el) = (-180..=180)
+            .flat_map(|az| (-85..=85).map(move |el| (az, el)))
+            .find(|&(az, el)| {
+                orbit_basis_from_legacy(&scene.system, az as f64, el as f64)
+                    .1
+                    .abs()
+                    > 86.
+            })
+            .expect("legacy directions can approach a world pole");
+        scene.set_orbit_camera(az as f32, el as f32, 420_000.);
+        let before = scene.build_frame(&settings).camera.forward;
+        scene.update(0.1, &mut settings);
+        let after = scene.build_frame(&settings).camera.forward;
+        assert!(
+            (before - after).length() < 1e-6,
+            "legacy view moved without a gesture: {az}, {el}"
+        );
+    }
+    #[test]
+    fn focus_transition_is_continuous_across_distance_scales() {
+        let (mut scene, mut settings) = fixture();
+        settings.view = ViewMode::Orbit;
+        scene.set_view_instant(ViewMode::Orbit);
+        settings.focus = Focus::Ossa;
+        scene.set_focus_instant(Focus::Ossa);
+        let before = scene.orbit_distance_km;
+        scene.apply_event(UiEvent::SetFocus(Focus::Vhal), &mut settings);
+        scene.update(1. / 60., &mut settings);
+        assert!(
+            scene.orbit_distance_km / before < 1.1,
+            "focus caused a distance jump: {before} -> {}",
+            scene.orbit_distance_km
+        );
+
+        settings.focus = Focus::System;
+        scene.set_focus_instant(Focus::System);
+        scene.apply_event(UiEvent::SetFocus(Focus::Ossa), &mut settings);
+        let mut previous = scene.orbit_distance_km;
+        for _ in 0..22 {
+            scene.update(0.1, &mut settings);
+            let ratio =
+                (previous / scene.orbit_distance_km).max(scene.orbit_distance_km / previous);
+            assert!(ratio < 2.1, "focus zoom jumps {ratio}x in one 10 fps frame");
+            previous = scene.orbit_distance_km;
+        }
+        assert!((scene.orbit_distance_km - 8000.).abs() < 1e-5);
+    }
+    #[test]
+    fn focus_transition_zoom_does_not_jump() {
+        let (mut scene, mut settings) = fixture();
+        settings.view = ViewMode::Orbit;
+        scene.set_view_instant(ViewMode::Orbit);
+        scene.apply_event(UiEvent::SetFocus(Focus::Kesh), &mut settings);
+        for _ in 0..110 {
+            scene.update(1. / 60., &mut settings);
+        }
+        let before = scene.orbit_distance_km;
+        scene.input.borrow_mut().zoom = 0.5;
+        scene.update(1. / 60., &mut settings);
+        assert!(
+            scene.orbit_distance_km / before < 1.1,
+            "zoom during focus jumped: {before} -> {}",
+            scene.orbit_distance_km
+        );
+    }
+    #[test]
+    fn focus_interrupt_and_debug_override_remain_continuous() {
+        let (mut scene, mut settings) = fixture();
+        settings.view = ViewMode::Orbit;
+        scene.set_view_instant(ViewMode::Orbit);
+        scene.apply_event(UiEvent::SetFocus(Focus::Kesh), &mut settings);
+        for _ in 0..10 {
+            scene.update(0.1, &mut settings);
+        }
+        let center = scene.focus_center;
+        let distance = scene.orbit_distance_km;
+        scene.apply_event(UiEvent::SetFocus(Focus::Ossa), &mut settings);
+        assert_eq!(scene.focus_center, center);
+        assert_eq!(scene.orbit_distance_km, distance);
+        scene.update(0.1, &mut settings);
+        let center = scene.focus_center;
+        scene.set_orbit_camera(120., 32., 850_000.);
+        assert_eq!(scene.focus_center, center);
+        scene.update(0.001, &mut settings);
+        assert!((scene.focus_center - center).length() < 10.);
+        assert!((scene.orbit_distance_km - 850_000.).abs() < 1e-6);
+    }
+    #[test]
+    fn returning_to_orbit_keeps_the_last_orbit_direction() {
+        let (mut scene, mut settings) = fixture();
+        settings.view = ViewMode::Orbit;
+        scene.set_view_instant(ViewMode::Orbit);
+        scene.input.borrow_mut().look = [180., 75.];
+        for _ in 0..60 {
+            scene.update(0.1, &mut settings);
+        }
+        let before = scene.build_frame(&settings).camera.forward;
+        scene.apply_event(UiEvent::SetView(ViewMode::Surface), &mut settings);
+        for _ in 0..4 {
+            scene.update(0.1, &mut settings);
+        }
+        assert_eq!(settings.view, ViewMode::Surface);
+        scene.apply_event(UiEvent::SetView(ViewMode::Orbit), &mut settings);
+        for _ in 0..4 {
+            scene.update(0.1, &mut settings);
+        }
+        assert_eq!(settings.view, ViewMode::Orbit);
+        assert_eq!(before, scene.build_frame(&settings).camera.forward);
+    }
+    #[test]
+    fn orbit_damping_matches_frame_rate_and_reduced_motion() {
+        let (mut fast, mut fast_settings) = fixture();
+        let (mut slow, mut slow_settings) = fixture();
+        fast_settings.view = ViewMode::Orbit;
+        slow_settings.view = ViewMode::Orbit;
+        fast.set_view_instant(ViewMode::Orbit);
+        slow.set_view_instant(ViewMode::Orbit);
+        for scene in [&mut fast, &mut slow] {
+            let mut input = scene.input.borrow_mut();
+            input.look = [120., -80.];
+            input.zoom = 2.4;
+        }
+        for _ in 0..36 {
+            fast.update(1. / 60., &mut fast_settings);
+        }
+        for _ in 0..6 {
+            slow.update(0.1, &mut slow_settings);
+        }
+        assert!((fast.orbit_yaw_deg - slow.orbit_yaw_deg).abs() < 1e-8);
+        assert!((fast.orbit_pitch_deg - slow.orbit_pitch_deg).abs() < 1e-8);
+        assert!((fast.orbit_distance_km / slow.orbit_distance_km - 1.).abs() < 1e-8);
+        assert!((fast.orbit_distance_target / 420_000. - 2.4_f64.exp()).abs() < 1e-8);
+        slow_settings.reduced_motion = true;
+        slow.input.borrow_mut().look = [50., 10000.];
+        slow.input.borrow_mut().zoom = -0.5;
+        slow.update(0.1, &mut slow_settings);
+        assert!((slow.orbit_yaw_deg - slow.orbit_yaw_target).abs() < 1e-9);
+        assert!((slow.orbit_pitch_deg + 85.).abs() < 1e-9);
+        assert!((slow.orbit_distance_km / slow.orbit_distance_target - 1.).abs() < 1e-9);
+        let (forward, right, up) = camera_basis(slow.orbit_yaw_deg, slow.orbit_pitch_deg);
+        assert!(up.dot(Vec3::Y) > 0.);
+        assert!(forward.dot(right).abs() < 1e-6);
+        assert!(forward.dot(up).abs() < 1e-6);
+    }
+    #[test]
+    fn orbit_reset_is_smooth_and_interruptible() {
+        let (mut scene, mut settings) = fixture();
+        settings.view = ViewMode::Orbit;
+        scene.set_view_instant(ViewMode::Orbit);
+        let default_yaw = scene.orbit_yaw_deg;
+        let default_frame = scene.build_frame(&settings);
+        scene.orbit_yaw_deg += 120.;
+        scene.orbit_yaw_target = scene.orbit_yaw_deg;
+        let before = scene.orbit_yaw_deg;
+        scene.apply_event(UiEvent::ResetCamera, &mut settings);
+        assert!(
+            (scene.orbit_yaw_deg - before).abs() < 1e-9,
+            "reset changed direction immediately"
+        );
+        scene.update(1. / 60., &mut settings);
+        assert!(
+            (scene.orbit_yaw_deg - before).abs() < 10.,
+            "reset turned too far in one frame"
+        );
+        scene.input.borrow_mut().look[0] = 30.;
+        let before_drag = scene.orbit_yaw_deg;
+        scene.update(0.1, &mut settings);
+        assert!(
+            scene.orbit_yaw_deg > before_drag,
+            "drag did not interrupt reset"
+        );
+        scene.apply_event(UiEvent::ResetCamera, &mut settings);
+        for _ in 0..30 {
+            scene.update(0.1, &mut settings);
+        }
+        assert!((scene.orbit_yaw_deg - default_yaw).abs() < 0.1);
+        let reset_frame = scene.build_frame(&settings);
+        assert_eq!(reset_frame.camera.forward, default_frame.camera.forward);
+        assert_eq!(reset_frame.camera.up, default_frame.camera.up);
+        assert_eq!(
+            reset_frame.bodies[1].rel_pos_km,
+            default_frame.bodies[1].rel_pos_km
+        );
+        settings.reduced_motion = true;
+        scene.orbit_yaw_deg += 50.;
+        scene.apply_event(UiEvent::ResetCamera, &mut settings);
+        assert!((scene.orbit_yaw_deg - default_yaw).abs() < 1e-9);
     }
     #[test]
     fn frame_data_cost() {
