@@ -25,8 +25,10 @@ pub struct Scene {
     pitch_deg: f64,
     yaw_target: f64,
     pitch_target: f64,
-    orbit_az_deg: f64,
-    orbit_el_deg: f64,
+    orbit_yaw_deg: f64,
+    orbit_pitch_deg: f64,
+    orbit_yaw_target: f64,
+    orbit_pitch_target: f64,
     orbit_distance_km: f64,
     orbit_distance_target: f64,
     focus: Focus,
@@ -69,6 +71,21 @@ fn smoothstep(t: f64) -> f64 {
     let t = t.clamp(0., 1.);
     t * t * (3. - 2. * t)
 }
+
+/// The public/debug orbit camera is expressed around the ring plane. The
+/// interactive camera now uses a normal world-up yaw/pitch basis so dragging
+/// never has to fight a tilted orbit axis. Convert the authored presets once,
+/// preserving their exact view direction and horizon.
+fn orbit_basis_from_legacy(system: &System, az_deg: f64, el_deg: f64) -> (f64, f64) {
+    let az = az_deg.to_radians();
+    let el = el_deg.to_radians();
+    let offset = (system.orbit_x * az.sin() - system.orbit_z * az.cos()) * el.cos()
+        - system.ring_normal * el.sin();
+    let forward = -offset.normalize();
+    let pitch = forward.y.clamp(-1., 1.).asin().to_degrees();
+    let yaw = forward.x.atan2(-forward.z).to_degrees();
+    (yaw, pitch)
+}
 fn camera_basis(yaw: f64, pitch: f64) -> (Vec3, Vec3, Vec3) {
     let y = yaw.to_radians();
     let p = pitch.to_radians();
@@ -91,6 +108,7 @@ impl Scene {
         let system = System::new(eye);
         let positions = system.positions(settings.sim_time);
         let center = positions[focus_body(settings.focus).index()];
+        let (orbit_yaw, orbit_pitch) = orbit_basis_from_legacy(&system, 90., 18.);
         let portrait = viewport.0 / viewport.1 < 0.85;
         let yaw = if portrait { 32. } else { 37. };
         let pitch = if portrait { 15. } else { 17.5 };
@@ -114,8 +132,10 @@ impl Scene {
             pitch_deg: pitch,
             yaw_target: yaw,
             pitch_target: pitch,
-            orbit_az_deg: 90.,
-            orbit_el_deg: 18.,
+            orbit_yaw_deg: orbit_yaw,
+            orbit_pitch_deg: orbit_pitch,
+            orbit_yaw_target: orbit_yaw,
+            orbit_pitch_target: orbit_pitch,
             orbit_distance_km: preset_distance(settings.focus),
             orbit_distance_target: preset_distance(settings.focus),
             focus: settings.focus,
@@ -199,8 +219,21 @@ impl Scene {
             self.pitch_deg += (self.pitch_target - self.pitch_deg) * damping;
             self.walk(dt, keys, settings.reduced_motion);
         } else {
-            self.orbit_az_deg -= look[0] * 0.20;
-            self.orbit_el_deg = (self.orbit_el_deg + look[1] * 0.17).clamp(-85., 85.);
+            // Standard orbit gesture: horizontal drag turns the camera around
+            // world-up, vertical drag pitches it. Damping removes the direct
+            // one-pixel-per-degree jerk of the old ring-relative controller.
+            self.orbit_yaw_target += look[0] * 0.16;
+            self.orbit_pitch_target =
+                (self.orbit_pitch_target - look[1] * 0.14).clamp(-85., 85.);
+            let damping = if settings.reduced_motion {
+                1.
+            } else {
+                1. - (-dt / 0.085).exp()
+            };
+            self.orbit_yaw_deg +=
+                (self.orbit_yaw_target - self.orbit_yaw_deg) * damping;
+            self.orbit_pitch_deg +=
+                (self.orbit_pitch_target - self.orbit_pitch_deg) * damping;
             if zoom != 0. {
                 self.orbit_distance_target *= zoom.clamp(-2., 2.).exp();
             }
@@ -378,11 +411,16 @@ impl Scene {
         }
     }
     pub fn set_orbit_camera(&mut self, az: f32, el: f32, distance: f64) {
-        if az.is_finite() {
-            self.orbit_az_deg = az as f64;
-        }
-        if el.is_finite() {
-            self.orbit_el_deg = el.clamp(-85., 85.) as f64;
+        if az.is_finite() && el.is_finite() {
+            let (yaw, pitch) = orbit_basis_from_legacy(
+                &self.system,
+                az as f64,
+                el.clamp(-85., 85.) as f64,
+            );
+            self.orbit_yaw_deg = yaw;
+            self.orbit_yaw_target = yaw;
+            self.orbit_pitch_deg = pitch;
+            self.orbit_pitch_target = pitch;
         }
         if distance.is_finite() {
             let minimum = RADII[focus_body(self.focus).index()] * 1.15;
@@ -408,8 +446,11 @@ impl Scene {
         self.joystick = DVec2::ZERO;
         self.walk_phase = 0.;
         self.eye_height_m = terrain_field::height_m(0., 0.) + 1.7;
-        self.orbit_az_deg = 90.;
-        self.orbit_el_deg = 18.;
+        let (orbit_yaw, orbit_pitch) = orbit_basis_from_legacy(&self.system, 90., 18.);
+        self.orbit_yaw_deg = orbit_yaw;
+        self.orbit_yaw_target = orbit_yaw;
+        self.orbit_pitch_deg = orbit_pitch;
+        self.orbit_pitch_target = orbit_pitch;
         self.set_focus_instant(self.focus);
         let mut input = self.input.borrow_mut();
         input.look = [0.; 2];
@@ -425,18 +466,12 @@ impl Scene {
             let (f, r, u) = camera_basis(self.yaw_deg, self.pitch_deg);
             (position, [east, vertical, south], f, r, u)
         } else {
-            let az = self.orbit_az_deg.to_radians();
-            let el = self.orbit_el_deg.to_radians();
-            // Observe the sunward (southern) face of the equatorial plane.
-            // A plane has two sides; positive camera elevation here is above
-            // its -spin-axis face, allowing a gibbous, not backlit, Vhal.
-            let direction = (self.system.orbit_x * az.sin() - self.system.orbit_z * az.cos())
-                * el.cos()
-                - self.system.ring_normal * el.sin();
-            let position = self.focus_center + direction * self.orbit_distance_km;
-            let forward = (-direction).as_vec3();
-            let right = forward.cross(Vec3::Y).normalize();
-            let up = right.cross(forward).normalize();
+            // A stable world-up orbit camera. The authored presets are
+            // converted from their ring-relative values at startup/reset, so
+            // the opening image is unchanged while dragging feels level.
+            let (forward, right, up) =
+                camera_basis(self.orbit_yaw_deg, self.orbit_pitch_deg);
+            let position = self.focus_center - forward.as_dvec3() * self.orbit_distance_km;
             (position, [DVec3::X, DVec3::Y, DVec3::Z], forward, right, up)
         };
         let settle = if settings.view == ViewMode::Surface {
@@ -902,6 +937,7 @@ mod tests {
         let system = System::new(eye);
         let positions = system.positions(0.);
         let center = positions[1];
+        let (orbit_yaw, orbit_pitch) = orbit_basis_from_legacy(&system, 90., 18.);
         (
             Scene {
                 viewport: (1440., 900.),
@@ -918,8 +954,10 @@ mod tests {
                 pitch_deg: 17.5,
                 yaw_target: 37.,
                 pitch_target: 17.5,
-                orbit_az_deg: 90.,
-                orbit_el_deg: 18.,
+                orbit_yaw_deg: orbit_yaw,
+                orbit_pitch_deg: orbit_pitch,
+                orbit_yaw_target: orbit_yaw,
+                orbit_pitch_target: orbit_pitch,
                 orbit_distance_km: 420_000.,
                 orbit_distance_target: 420_000.,
                 focus: Focus::Vhal,
