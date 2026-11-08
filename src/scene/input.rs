@@ -31,9 +31,14 @@ pub fn install(canvas: &HtmlCanvasElement) -> Result<Rc<RefCell<Input>>, JsValue
         }
         event.prevent_default();
         let _ = c.focus();
-        let _ = c.set_pointer_capture(e.pointer_id());
         let mut s = i.borrow_mut();
         s.pointers.retain(|p| p.0 != e.pointer_id());
+        // Only two pointers participate in orbit/pinch. A third finger must
+        // not turn a pinch into a sudden one-finger look gesture.
+        if s.pointers.len() >= 2 {
+            return;
+        }
+        let _ = c.set_pointer_capture(e.pointer_id());
         s.pointers
             .push((e.pointer_id(), e.client_x() as f64, e.client_y() as f64));
     })?;
@@ -147,6 +152,7 @@ pub fn install(canvas: &HtmlCanvasElement) -> Result<Rc<RefCell<Input>>, JsValue
             s.keys = [false; 5];
             s.pointers.clear();
             s.look = [0.; 2];
+            s.zoom = 0.;
         })?;
     }
     Ok(input)
