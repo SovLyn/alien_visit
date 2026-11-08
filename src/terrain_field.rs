@@ -138,16 +138,22 @@ pub fn height_m(east: f64, north: f64) -> f32 {
     // away. It rises ~34 m above the start and throws a long hard shadow
     // across the foreground at the low sun. This is the one tall rock ridge.
     let d_blade2 = segment_dist(e, n, 110.0, 220.0, 250.0, 650.0);
-    let t_blade = (d_blade2 / 58.0).clamp(0.0, 1.0);
-    let blade2 = (1.0 - t_blade * t_blade).powf(0.62);
-    let blade2_tex = 0.58 + 0.42 * ridged(e / 38.0 + 5.0, n / 78.0, 2, 0xa351);
-    h += 54.0 * blade2 * blade2_tex;
+    // Both profiles have compact support. Skip their texture/noise outside
+    // that support instead of evaluating it for the entire 30 km mesh.
+    if d_blade2 < 58.0 {
+        let t_blade = (d_blade2 / 58.0).clamp(0.0, 1.0);
+        let blade2 = (1.0 - t_blade * t_blade).powf(0.62);
+        let blade2_tex = 0.58 + 0.42 * ridged(e / 38.0 + 5.0, n / 78.0, 2, 0xa351);
+        h += 54.0 * blade2 * blade2_tex;
+    }
     // A broken secondary tooth, so the ridge reads as erosion rather than a dome.
     let d_tooth = segment_dist(e, n, 180.0, 350.0, 285.0, 540.0);
-    let t_tooth = (d_tooth / 34.0).clamp(0.0, 1.0);
-    h += 26.0
-        * (1.0 - t_tooth * t_tooth).powf(0.60)
-        * (0.55 + 0.45 * ridged(e / 30.0 + 9.0, n / 60.0, 2, 0x51ab));
+    if d_tooth < 34.0 {
+        let t_tooth = (d_tooth / 34.0).clamp(0.0, 1.0);
+        h += 26.0
+            * (1.0 - t_tooth * t_tooth).powf(0.60)
+            * (0.55 + 0.45 * ridged(e / 30.0 + 9.0, n / 60.0, 2, 0x51ab));
+    }
 
     // A small foreground swell at 80–230 m: enough to read the ground plane
     // and catch a shadow, not a dune.
@@ -171,9 +177,9 @@ pub fn height_m(east: f64, north: f64) -> f32 {
     h += (fbm(e / 172.0 + 2.0, n / 172.0 - 6.0, 2, 0x6b2f) - 0.5) * 2.8;
     h += (fbm(e / 39.0 - 8.0, n / 39.0 + 3.0, 2, 0xd41a) - 0.5) * 0.75;
 
-    // Very slight terrace/strata stepping on shallow slopes.
+    // Soft strata, without pronounced steps on the sunlit blade face.
     let strata = ((h * 0.22).sin() * 0.5 + 0.5).powf(3.0) - 0.5;
-    h += strata * 0.45;
+    h += strata * 0.18;
 
     h
 }
