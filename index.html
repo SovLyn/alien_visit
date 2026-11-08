@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#05080d">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2305080d'/%3E%3Ccircle cx='16' cy='17' r='7' fill='%23c9d2d0'/%3E%3Cellipse cx='16' cy='17' rx='14' ry='4' fill='none' stroke='%239fc3c4' stroke-width='1'/%3E%3C/svg%3E"><title>OSSA — Moon of Vhal</title><link rel="stylesheet" href="c:/Program%20Files/Git/alien_visit/styles-ac3a53d469634d85.css" integrity="sha384-SFwtKSgG58v2KRREH+X87HipiNkL2MxyMICv6mnat3C0Cb3PtyJ1j9ngYnS9+e5W"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2305080d'/%3E%3Ccircle cx='16' cy='17' r='7' fill='%23c9d2d0'/%3E%3Cellipse cx='16' cy='17' rx='14' ry='4' fill='none' stroke='%239fc3c4' stroke-width='1'/%3E%3C/svg%3E"><title>OSSA — Moon of Vhal</title><link rel="stylesheet" href="./styles-ac3a53d469634d85.css" integrity="sha384-SFwtKSgG58v2KRREH+X87HipiNkL2MxyMICv6mnat3C0Cb3PtyJ1j9ngYnS9+e5W"/>
 <script type="module">
-import init, * as bindings from 'c:/Program%20Files/Git/alien_visit/alien_visit-1d7b3f029ccfb013.js';
-const wasm = await init({ module_or_path: 'c:/Program%20Files/Git/alien_visit/alien_visit-1d7b3f029ccfb013_bg.wasm' });
+import init, * as bindings from './alien_visit-1d7b3f029ccfb013.js';
+const wasm = await init({ module_or_path: './alien_visit-1d7b3f029ccfb013_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -11,7 +11,7 @@ window.wasmBindings = bindings;
 
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
-</script><link rel="modulepreload" href="c:/Program%20Files/Git/alien_visit/alien_visit-1d7b3f029ccfb013.js" crossorigin="anonymous" integrity="sha384-6edzDgWtnTxz2Taa4H963AeXmd//wZ5LjbRKYR2xOquXwuyJpA0PbYnmJC5mQdyv"><link rel="preload" href="c:/Program%20Files/Git/alien_visit/alien_visit-1d7b3f029ccfb013_bg.wasm" crossorigin="anonymous" integrity="sha384-CpmUvlTiEga0hckclw4/8VZpiO5yPJ9DyAMEtscf8QWapNmsrO0MPGQ4Oo7VjEGh" as="fetch" type="application/wasm"></head><body>
+</script><link rel="modulepreload" href="./alien_visit-1d7b3f029ccfb013.js" crossorigin="anonymous" integrity="sha384-6edzDgWtnTxz2Taa4H963AeXmd//wZ5LjbRKYR2xOquXwuyJpA0PbYnmJC5mQdyv"><link rel="preload" href="./alien_visit-1d7b3f029ccfb013_bg.wasm" crossorigin="anonymous" integrity="sha384-CpmUvlTiEga0hckclw4/8VZpiO5yPJ9DyAMEtscf8QWapNmsrO0MPGQ4Oo7VjEGh" as="fetch" type="application/wasm"></head><body>
 <canvas id="scene" aria-label="OSSA — a desert moon beneath Vhal"></canvas>
 <div id="veil"></div><div id="ui-root">
 <header class="identity"><div class="wordmark">OSSA</div><div class="subtitle">MOON OF VHAL</div><div class="identity-rule"></div><div id="status" class="status">SURFACE · 48.0°N 12.4°E</div></header>
