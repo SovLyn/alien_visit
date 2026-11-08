@@ -141,13 +141,14 @@ Measured numbers and methodology are in `PERF.md`. Summary from the final build:
   ~240 Hz headless rAF cap (≈4.2 ms/frame or better); the number is a headroom
   indicator, not a device benchmark.
 - **SwiftShader software lower bound**: 1440×900 HIGH surface/orbit ≈10 FPS;
-  mobile 390×844 LOW at 4× CPU throttle ≈16 FPS average.
+  mobile 390×844 LOW at 4× CPU throttle ≈13–16 FPS average across runs.
 - Mobile user agents auto-select **LOW** (render scale 0.75, DPR cap 1.25,
   192×128 terrain, 1024² shadows, 3 sky octaves); desktop defaults to HIGH.
   LOW/MED/HIGH remain selectable.
-- Page weight ≈360 KB total; WASM 276 KB (127 KB gzip), JS 60 KB (10 KB gzip).
-- The HIGH terrain mesh rebuild (≈58 ms) occurs only when the player moves 96 m
-  or changes quality, not while standing or orbiting. This is the largest known
+- Page weight ≈366 KB total; WASM 282 KB (126 KB gzip), JS 60 KB (10 KB gzip).
+- The HIGH terrain mesh rebuild (≈42–46 ms in the latest four-build sample;
+  earlier builds measured ≈58 ms) occurs only when the player moves 96 m or
+  changes quality, not while standing or orbiting. This is the largest known
   frame-time spike.
 
 ## Repository map

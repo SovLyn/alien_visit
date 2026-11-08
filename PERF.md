@@ -31,6 +31,12 @@ Chrome launched with `--use-angle=swiftshader --enable-unsafe-swiftshader`.
 | Desktop, orbit | 1440×900 | HIGH | 10.0 / **10.0** / 10.0 |
 | Mobile, surface | 366×791 (CSS 390×844, DPR 2 capped) | LOW, 4× CPU throttle | 13.9 / **16.3** / 25.6 |
 
+After the layered-regolith pass, a re-run on the same SwiftShader setup measured
+mobile LOW **12.6 / 13.2 / 15.1 FPS** (min / avg / max) and desktop HIGH steady
+10.0 FPS after boot; the desktop 10-second average is distorted by a 137 FPS
+first-second sample and is not used as a headline. Treat the newer mobile figure
+as the current floor and the table above as the earlier baseline.
+
 These are CPU-emulated GPU numbers. They are useful as a floor: even without a real GPU
 the page is interactive, and a real GPU has a large margin.
 
@@ -62,11 +68,15 @@ a phone. The mobile case is a desktop GPU with a mobile viewport, not a phone GP
 
 ## Startup and walking
 
-- The HIGH terrain mesh build + GPU upload is logged by the app; measured **≈57.6 ms** in
-  the SwiftShader test profile. The mesh is rebuilt when the player moves more than 96 m
-  (was 32 m) or changes quality, so a sprinting player sees a brief hitch roughly every
-  15 s. Normal walking (2.1 m/s) rebuilds about every 45 s. This is the largest known
-  frame-time spike; it does not occur while standing or orbiting.
+- The HIGH terrain mesh build + GPU upload is logged by the app; the latest four-build
+  sample after the detail pass measured **42.5–46.4 ms** (LOW 15.3 ms). Earlier builds
+  measured ≈57.6 ms, and one instrumented load reached 107.8 ms, so this remains the
+  largest known frame-time spike under load. The mesh is rebuilt when the player moves
+  more than 96 m (was 32 m) or changes quality, so a sprinting player sees a brief hitch
+  roughly every 15 s. Normal walking (2.1 m/s) rebuilds about every 45 s; it does not
+  occur while standing or orbiting. The layered regolith shader evaluates up to six
+  noise bands at close range, skips fully filtered bands, and widens PCF only on steep
+  faces; hardware GPU cost was not measured.
 - Shader compilation happens once at boot; the sky/terrain programs are cached. The
   first frames include the terrain mesh build; the loading veil covers the transition.
 - CPU-side scene + HUD cost is ≈0.08 ms (surface) / ≈0.005 ms (orbit) in a native
@@ -78,7 +88,7 @@ a phone. The mobile case is a desktop GPU with a mobile viewport, not a phone GP
 
 | Asset | Raw | gzip |
 |---|---|---|
-| WASM | 276 KB | 127 KB |
+| WASM | 282 KB | 126 KB |
 | JS glue | 60 KB | 10 KB |
 | CSS | 9.3 KB | 2.8 KB |
 | HTML + favicon data URI | 6.2 KB | ~2 KB |

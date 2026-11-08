@@ -19,7 +19,9 @@ orbiting the cold star **Kesh**. Two views:
   cold Kesh low on the right, stars, cold haze. Walk, look, run; the terrain follows.
 - **Orbit** — an observational view of the Vhal local system (Ossa, Thren, Sable,
   orbit hairlines, labels, ring shadows), with **SYSTEM** and **KESH** presets for
-  the star and the planets. Orbit lines are occluded by bodies.
+  the star and the planets. Orbit lines are occluded by bodies. Dragging uses a
+  level world-up basis with pitch limits and damping; focus and zoom transitions
+  interpolate in logarithmic distance so a preset change does not jump.
 - **HUD** — always-on Vhal/Kesh markers, 28px bracket for Kesh's bright disc,
   `OCCLUDED` / `ECLIPSED` states, edge chevrons for off-screen/behind-camera
   bodies, quiet minor-body labels in orbit, telemetry and a scale bar.
@@ -43,7 +45,9 @@ Everything is procedural; there are no texture, font, analytics or CDN requests.
   from neighbours, sun shadow map (PCF), Vhal-shine fill, haze.
 - HUD/UI: DOM overlay with element pooling and a deck-aware collision helper;
   no external fonts.
-- Deploy: GitHub Actions → Pages artifact; Pages `build_type: workflow`.
+- Deploy: local Trunk release build → static `gh-pages` branch; Pages
+  `build_type: legacy`. The Actions workflow is disabled because its
+  wasm-bindgen download was unreliable in this environment.
 
 The camera-relative design avoids f32 solar-system precision issues; the surface
 local frame is +Y up / −Z grid north. Expedition grid north points toward Vhal,
@@ -62,6 +66,8 @@ the implementation slices in parallel. Main model: `gpt-6.1-sol`.
 | P0 toolchain probe | `gpt-6.1-terra` | Trunk + glow 0.16 + WASM + headless Chrome WebGL2 verified |
 | Sky / celestial impostors | `renderer-sky`, `gpt-6.1-sol` | `sky.glsl` (bodies, rings, shadows, starfield, atmosphere), orbit-line pass; later polish pass by the same model |
 | Terrain / shadows | `renderer-terrain`, `gpt-6.1-terra` | camera-following mesh, shadow map, mineral shading, haze |
+| Ground-detail refinement (two passes) | `terrain-detail`, `gpt-6.1-terra` | layered LOD-filtered regolith relief/grain/flecks, softer blade strata, mesh-build skip for compact blade supports |
+| Orbit-camera feel and transitions | `orbit-camera`, `gpt-6.1-terra` | world-up level orbit basis, pitch limits/damping, logarithmic focus/zoom transitions, touch third-pointer guard, reset shortest path |
 | Scene / cameras / HUD | `scene`, `gpt-6.1-sol` | ephemerides, tidal lock, surface/orbit cameras, input, occlusion, HUD data, tests |
 | UI / HUD DOM | `ui`, `gpt-6.1-terra` | index.html, CSS, control bindings, marker pool, mobile layout |
 | QA harness | `qa`, `gpt-6-luna` | Playwright shot/perf/smoke tools; director finished the acceptance suite |
@@ -204,9 +210,12 @@ remaining polish and tests.
   LOW on mobile and the joystick/mobile deck were verified.
 - **Headless hardware** numbers hit the ~240 Hz rAF cap and cannot distinguish
   HIGH/LOW; treat them as headroom evidence, not a certified 240 fps claim.
-- **Terrain rebuild** is ≈58 ms at HIGH every 96 m of movement; it is the largest
-  frame spike. Normal walking rebuilds roughly every 45 s; standing/orbit is
-  unaffected. A chunked async rebuild would be the next optimization.
+- **Terrain rebuild** is ≈42–46 ms at HIGH in the latest four-build sample
+  (earlier ≈58 ms) every 96 m of movement; it is the largest frame spike.
+  Normal walking rebuilds roughly every 45 s; standing/orbit is unaffected.
+  A chunked async rebuild would be the next optimization. The blade still has
+  some shadow-map horizontal bands; removing them fully needs higher shadow
+  resolution or mesh work, not another colour tweak.
 - **System view** shows true-scale planets; they are sub-pixel/small. Labels,
   orbit lines and the ORBIT KEY carry the hierarchy rather than exaggerated
   planets. The OSSA focus shows the moon as a sphere; its texture is a procedural
