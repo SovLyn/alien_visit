@@ -1,0 +1,7 @@
+/target
+/dist
+/node_modules
+/tools/qa/node_modules
+/tools/qa/.cache
+*.log
+.pi-loop.json.lock

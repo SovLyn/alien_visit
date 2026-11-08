@@ -1,0 +1,60 @@
+:root {
+  --ink: #c9d2d0;
+  --dim: #7e8c8b;
+  --accent: #9fc3c4;
+  --bg: #05080d;
+  --hair: rgba(201, 210, 208, 0.16);
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+}
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: block;
+  background: var(--bg);
+  touch-action: none;
+}
+#ui-root.is-hidden { opacity: 0; pointer-events: none; }
+.loader {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  text-align: center;
+  background: var(--bg);
+  z-index: 50;
+  transition: opacity 700ms ease;
+}
+.loader.is-hidden { opacity: 0; pointer-events: none; }
+.loader-wordmark { font-size: 18px; letter-spacing: 0.42em; text-indent: 0.42em; }
+.loader-sub { font-size: 9px; letter-spacing: 0.3em; text-indent: 0.3em; color: var(--dim); }
+.loader-line { width: 120px; height: 1px; background: var(--hair); margin: 12px auto 0; overflow: hidden; }
+.loader-line i { display: block; width: 40%; height: 100%; background: var(--accent); animation: load 1.4s ease-in-out infinite; }
+@keyframes load { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+.fatal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  place-content: center;
+  gap: 12px;
+  text-align: center;
+  background: var(--bg);
+  z-index: 60;
+  padding: 24px;
+}
+.fatal.is-visible { display: grid; }
+.fatal-title { font-size: 12px; letter-spacing: 0.34em; text-indent: 0.34em; color: #c8a978; }
+.fatal-message { font-size: 10px; color: var(--dim); max-width: 48ch; line-height: 1.7; }
