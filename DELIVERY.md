@@ -88,9 +88,11 @@ remaining polish and tests.
   `terrain_field.rs`, `render/mod.rs`, `render/gl_util.rs`, plus integration
   edits, the visual spec, deployment and acceptance. This is roughly one third
   of the core source and is the reason it is called out here.
-- The director also did the final art-direction passes on the terrain field
+- The director also did earlier art-direction passes on the terrain field
   (blade/shadow composition, warming), the UI layout (deck to bottom-left, Kesh
   bracket, orbit key, minor labels), orbit-preset tuning, and the QA fix loop.
+  The later ground-detail and orbit-camera passes were delegated to the two
+  subagents above; the director reviewed and integrated them.
 
 ---
 
@@ -197,8 +199,9 @@ remaining polish and tests.
 
 - [x] `PERF.md` records desktop/mobile, software and hardware-headless numbers,
   quality auto-downgrade, page weight and the terrain rebuild hitch.
-  Headline: software 1440×900 HIGH ≈10 FPS; mobile LOW 4× CPU throttle ≈16 FPS
-  average; hardware-headless at the ~240 Hz cap (≈4.2 ms/frame or better).
+  Headline: software 1440×900 HIGH ≈10 FPS; mobile LOW 4× CPU throttle ≈13–16 FPS
+  average across runs; hardware-headless at the ~240 Hz cap (≈4.2 ms/frame or
+  better).
   These are labelled appropriately; no phone GPU was available.
 
 ---
@@ -251,7 +254,11 @@ remaining polish and tests.
 | `ARCHITECTURE.md` | ownership + interfaces |
 | `tools/qa/` | shot/perf/smoke/acceptance harness |
 
-The live page was verified with the same Playwright harness against the final
-`https://sovlyn.github.io/alien_visit/` URL after deployment: 28/28 checks, no
-console/page errors, and the live surface/orbit views match the committed
-screenshots.
+The latest deployment is source `725988c` on `master`, published from
+`gh-pages` commit `706627b`. The live page was verified with the same Playwright
+harness against `https://sovlyn.github.io/alien_visit/`: **28/28 checks, zero
+console/page errors**, with CSS SRI matching the 9,530-byte LF stylesheet. The
+live surface and orbit screenshots are byte-identical to the committed
+`docs/shots/surface.png` and `docs/shots/orbit.png` from this build. The deployed
+assets are `alien_visit-325bcdb81f7c1d12.js`, `..._bg.wasm`, and
+`styles-b58cc1fcc3cdf344.css`.
