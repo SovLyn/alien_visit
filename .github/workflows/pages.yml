@@ -29,6 +29,11 @@ jobs:
           tool: trunk
       - name: Cargo cache
         uses: Swatinem/rust-cache@v2
+      - name: wasm-bindgen CLI (match Cargo.lock)
+        # Trunk otherwise downloads a prebuilt wasm-bindgen archive from GitHub
+        # Releases; GitHub-hosted runners intermittently get 504s there. The
+        # crates.io install is slower but deterministic and version-matched.
+        run: cargo install wasm-bindgen-cli --version 0.2.130 --locked
       - name: Build
         run: trunk build --release --public-url /alien_visit/
       - name: Upload artifact
