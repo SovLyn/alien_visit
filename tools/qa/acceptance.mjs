@@ -31,7 +31,7 @@ try {
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
     }, value);
-    await page.waitForTimeout(120);
+    await page.waitForTimeout(250);
   };
   const s0 = await snap();
   check('boot surface / high', s0.view === 'SURFACE' && s0.quality === 'HIGH', s0);
@@ -45,6 +45,7 @@ try {
   await setRange('#rings', 0.5);
   await setRange('#light', 0.4);
   await setRange('#fov', 90);
+  await page.waitForTimeout(1000);
   const s1 = await snap();
   check('sliders reach settings', Math.abs(s1.exposure - 1.4) < 0.01 && Math.abs(s1.haze - 0.2) < 0.01 && Math.abs(s1.rings - 0.5) < 0.01 && Math.abs(s1.vhalLight - 0.4) < 0.01 && Math.abs(s1.fov - 90) < 0.01, s1);
 
@@ -75,24 +76,24 @@ try {
   await page.locator('#orbits').click();
 
   // View / focus / orbit UI.
-  await page.locator('#view-orbit').click(); await page.waitForTimeout(700);
+  await page.locator('#view-orbit').click(); await page.waitForTimeout(1600);
   const so = await snap();
   check('view orbit', so.view === 'ORBIT', so);
   check('focus group visible', await page.locator('#focus-group').isVisible(), '');
   check('orbit key visible', await page.locator('#orbit-key').isVisible(), '');
-  await page.locator('#focus-system').click(); await page.waitForTimeout(2600);
+  await page.locator('#focus-system').click(); await page.waitForTimeout(3200);
   const sf = await snap();
   check('focus system', sf.focus === 'SYSTEM', sf);
-  await page.locator('#focus-vhal').click(); await page.waitForTimeout(2600);
+  await page.locator('#focus-vhal').click(); await page.waitForTimeout(3200);
   check('focus vhal', (await snap()).focus === 'VHAL', null);
   await page.locator('#quality-high').click(); await page.waitForTimeout(250);
 
   // View switch keyboard and hide UI.
-  await page.keyboard.press('Digit1'); await page.waitForTimeout(1000);
+  await page.keyboard.press('Digit1'); await page.waitForTimeout(2200);
   check('key 1 surface', (await snap()).view === 'SURFACE', null);
-  await page.keyboard.press('KeyH'); await page.waitForTimeout(600);
+  await page.keyboard.press('KeyH'); await page.waitForTimeout(1000);
   check('H hides UI', await page.locator('#ui-root').evaluate(e => e.classList.contains('is-hidden')), '');
-  await page.keyboard.press('KeyH'); await page.waitForTimeout(600);
+  await page.keyboard.press('KeyH'); await page.waitForTimeout(1000);
   check('H shows UI', !(await page.locator('#ui-root').evaluate(e => e.classList.contains('is-hidden'))), '');
 
   // Deck collapse.

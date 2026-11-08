@@ -114,9 +114,24 @@ python -m http.server 8788 --directory dist
 
 ## Deploy
 
-`.github/workflows/pages.yml` builds with Trunk on every push to `master` and
-publishes `dist/` with GitHub Pages Actions. Pages is configured with
-`build_type: workflow` (no `gh-pages` branch).
+The live site is served from the **`gh-pages` branch** (static `dist/` at the
+branch root, relative asset paths, `.nojekyll`). Pages is configured with
+`build_type: legacy` and source `gh-pages`; this avoids a CI-side dependency on
+GitHub Releases at delivery time.
+
+`.github/workflows/pages.yml` contains the equivalent Trunk build and wasm-bindgen
+install for CI. It is currently **disabled** because GitHub-hosted runners in this
+environment repeatedly received `504` while downloading the prebuilt
+wasm-bindgen archive; the same source builds cleanly locally (and the workflow
+pins a crates.io-installed CLI as a mitigation). To update the live site:
+
+```bash
+trunk build --release --public-url ./
+# copy dist/* to the root of the gh-pages branch, add .nojekyll, commit, push
+```
+
+The final live URL was verified with the same 28-check Playwright acceptance
+suite as the local build.
 
 ## Quality / performance
 

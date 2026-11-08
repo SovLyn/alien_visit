@@ -124,15 +124,24 @@ remaining polish and tests.
 
 ### Deployment / robustness
 
-- [x] GitHub Pages site enabled with `build_type: workflow`; Actions builds with
-  `trunk build --release --public-url /alien_visit/` and deploys `dist/`.
-- [x] Real URL returns HTTPS 200; hashed JS/WASM/CSS assets load from
-  `/alien_visit/`.
+- [x] GitHub Pages is configured with `build_type: legacy`, source branch
+  `gh-pages`; the static build is at the branch root with relative asset paths
+  and `.nojekyll`.
+- [x] Real URL `https://sovlyn.github.io/alien_visit/` returns HTTPS 200; hashed
+  JS/WASM/CSS assets load with valid SRI (CSS line endings normalized to LF), and
+  `DEPLOY.txt`-free clean branch.
+- [x] The full **28/28 live acceptance suite** passes against the real URL with
+  zero console/page errors. The local suite passes identically.
+- [x] `.github/workflows/pages.yml` contains the Trunk build (including a
+  crates.io-installed, version-matched wasm-bindgen CLI) but is disabled because
+  GitHub-hosted runners received repeated `504` from the wasm-bindgen GitHub
+  Release download; the delivery build is the same source built locally.
 - [x] No blocking console errors; favicon is a data URI; preload-integrity is a
-  warning only. Tested with `tools/qa/acceptance.mjs`.
+  warning only. Tested with `tools/qa/acceptance.mjs` against live and local.
 - [x] WebGL2 failure path shows `SIGNAL LOST`; loading veil hides on boot.
-- [x] 1440×900, 390×844 (portrait) and desktop/mobile layouts checked. Mobile
-  user agent auto-selects LOW; deck collapsed; joystick present and moves.
+- [x] 1440×900, 1280×720, 390×844 and 844×390 layouts checked. Short heights
+  (≤780 px) start with the deck folded; mobile user agent auto-selects LOW; deck
+  collapsed; joystick present and moves.
 
 ### UI / controls
 
@@ -234,4 +243,6 @@ remaining polish and tests.
 | `tools/qa/` | shot/perf/smoke/acceptance harness |
 
 The live page was verified with the same Playwright harness against the final
-`https://sovlyn.github.io/alien_visit/` URL after deployment.
+`https://sovlyn.github.io/alien_visit/` URL after deployment: 28/28 checks, no
+console/page errors, and the live surface/orbit views match the committed
+screenshots.
