@@ -84,7 +84,7 @@ a phone. The mobile case is a desktop GPU with a mobile viewport, not a phone GP
 
 ## Page weight
 
-`dist/` total **≈360 KB uncompressed** at the measured build:
+`dist/` total **≈366 KB uncompressed** at the measured build:
 
 | Asset | Raw | gzip |
 |---|---|---|
